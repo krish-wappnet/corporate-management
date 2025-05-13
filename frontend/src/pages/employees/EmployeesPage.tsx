@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch } from '../../store/store';
 import { fetchUsers, selectUsers, selectUsersLoading, selectTotalUsers } from '../../store/slices/userSlice';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button, Card, Table, Space, Tag, Avatar } from 'antd';
 import { PlusOutlined, UserOutlined, EyeOutlined, DeleteOutlined } from '@ant-design/icons';
 
@@ -31,6 +31,7 @@ type User = ApiUser;
 
 const EmployeesPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
+  const navigate = useNavigate();
   const users = useSelector(selectUsers);
   const loading = useSelector(selectUsersLoading);
   const total = useSelector(selectTotalUsers);
@@ -157,9 +158,7 @@ const EmployeesPage: React.FC = () => {
           <h2 className="text-2xl font-bold text-gray-900">Employees</h2>
           <Button
             icon={<PlusOutlined />}
-            onClick={() => {
-              console.log('Add new employee clicked');
-            }}
+            onClick={() => navigate('/employees/new')}
             className="bg-black text-white hover:bg-gray-800 border-none rounded-md transition-all transform hover:scale-105"
           >
             Add Employee
