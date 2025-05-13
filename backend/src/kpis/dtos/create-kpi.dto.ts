@@ -9,9 +9,12 @@ import {
   IsUUID,
   Max,
   Min,
+  ValidateNested,
+  IsArray,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { KpiStatus, KpiType } from '../entities/kpi.entity';
+import { MetricDto } from './metric.dto';
 
 export class CreateKpiDto {
   @ApiProperty({ example: 'Increase sales by 20%' })
@@ -30,11 +33,26 @@ export class CreateKpiDto {
   type?: KpiType;
 
   @ApiPropertyOptional({
-    example: { unit: 'dollars', frequency: 'monthly' },
-    description: 'Additional metrics information',
+    type: [MetricDto],
+    example: [
+      {
+        name: 'Monthly Revenue',
+        target: 100000,
+        unit: 'USD'
+      },
+      {
+        name: 'New Customers',
+        target: 50,
+        unit: 'customers'
+      }
+    ],
+    description: 'Array of metrics for this KPI',
   })
   @IsOptional()
-  metrics?: Record<string, any>;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => MetricDto)
+  metrics?: MetricDto[];
 
   @ApiProperty({ example: 100000, description: 'Target value to achieve' })
   @IsNumber()

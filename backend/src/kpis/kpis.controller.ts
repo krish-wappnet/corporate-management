@@ -76,6 +76,14 @@ export class KpisController {
     return this.kpisService.findAllKpis(paginationDto, filters);
   }
 
+  // KPI Categories Endpoints - Must come before :id route to avoid conflict
+  @Get('categories')
+  @ApiOperation({ summary: 'Get all KPI categories' })
+  @ApiResponse({ status: 200, description: 'List of KPI categories', type: [KpiCategory] })
+  findAllCategories(): Promise<KpiCategory[]> {
+    return this.kpisService.findAllCategories();
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get a KPI by ID' })
   @ApiResponse({ status: 200, description: 'KPI retrieved successfully', type: Kpi })
@@ -125,7 +133,8 @@ export class KpisController {
     return this.kpisService.getKpiUpdates(id);
   }
 
-  // KPI Categories Endpoints
+
+
   @Post('categories')
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Create a new KPI category' })
@@ -134,13 +143,6 @@ export class KpisController {
     @Body() createKpiCategoryDto: CreateKpiCategoryDto,
   ): Promise<KpiCategory> {
     return this.kpisService.createCategory(createKpiCategoryDto);
-  }
-
-  @Get('categories')
-  @ApiOperation({ summary: 'Get all KPI categories' })
-  @ApiResponse({ status: 200, description: 'KPI categories retrieved successfully' })
-  findAllCategories(): Promise<KpiCategory[]> {
-    return this.kpisService.findAllCategories();
   }
 
   @Get('categories/:id')

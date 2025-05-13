@@ -14,13 +14,13 @@ export declare class KpisController {
     constructor(kpisService: KpisService);
     create(req: any, createKpiDto: CreateKpiDto): Promise<Kpi>;
     findAll(paginationDto: PaginationDto, userId?: string, status?: KpiStatus, categoryId?: string, startDate?: string, endDate?: string): Promise<PaginationResponseDto<Kpi>>;
+    findAllCategories(): Promise<KpiCategory[]>;
     findOne(id: string): Promise<Kpi>;
     update(id: string, updateKpiDto: UpdateKpiDto): Promise<Kpi>;
     remove(id: string): Promise<void>;
     createUpdate(req: any, createKpiUpdateDto: CreateKpiUpdateDto): Promise<KpiUpdate>;
     getUpdates(id: string): Promise<KpiUpdate[]>;
     createCategory(createKpiCategoryDto: CreateKpiCategoryDto): Promise<KpiCategory>;
-    findAllCategories(): Promise<KpiCategory[]>;
     findOneCategory(id: string): Promise<KpiCategory>;
     updateCategory(id: string, updateKpiCategoryDto: UpdateKpiCategoryDto): Promise<KpiCategory>;
     removeCategory(id: string): Promise<void>;

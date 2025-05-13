@@ -14,6 +14,7 @@ const swagger_1 = require("@nestjs/swagger");
 const class_validator_1 = require("class-validator");
 const class_transformer_1 = require("class-transformer");
 const kpi_entity_1 = require("../entities/kpi.entity");
+const metric_dto_1 = require("./metric.dto");
 class CreateKpiDto {
 }
 exports.CreateKpiDto = CreateKpiDto;
@@ -37,11 +38,26 @@ __decorate([
 ], CreateKpiDto.prototype, "type", void 0);
 __decorate([
     (0, swagger_1.ApiPropertyOptional)({
-        example: { unit: 'dollars', frequency: 'monthly' },
-        description: 'Additional metrics information',
+        type: [metric_dto_1.MetricDto],
+        example: [
+            {
+                name: 'Monthly Revenue',
+                target: 100000,
+                unit: 'USD'
+            },
+            {
+                name: 'New Customers',
+                target: 50,
+                unit: 'customers'
+            }
+        ],
+        description: 'Array of metrics for this KPI',
     }),
     (0, class_validator_1.IsOptional)(),
-    __metadata("design:type", Object)
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.ValidateNested)({ each: true }),
+    (0, class_transformer_1.Type)(() => metric_dto_1.MetricDto),
+    __metadata("design:type", Array)
 ], CreateKpiDto.prototype, "metrics", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({ example: 100000, description: 'Target value to achieve' }),

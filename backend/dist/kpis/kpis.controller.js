@@ -46,6 +46,9 @@ let KpisController = class KpisController {
         };
         return this.kpisService.findAllKpis(paginationDto, filters);
     }
+    findAllCategories() {
+        return this.kpisService.findAllCategories();
+    }
     findOne(id) {
         return this.kpisService.findKpiById(id);
     }
@@ -63,9 +66,6 @@ let KpisController = class KpisController {
     }
     createCategory(createKpiCategoryDto) {
         return this.kpisService.createCategory(createKpiCategoryDto);
-    }
-    findAllCategories() {
-        return this.kpisService.findAllCategories();
     }
     findOneCategory(id) {
         return this.kpisService.findCategoryById(id);
@@ -117,6 +117,14 @@ __decorate([
     __metadata("design:paramtypes", [pagination_dto_1.PaginationDto, String, String, String, String, String]),
     __metadata("design:returntype", Promise)
 ], KpisController.prototype, "findAll", null);
+__decorate([
+    (0, common_1.Get)('categories'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get all KPI categories' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'List of KPI categories', type: [kpi_category_entity_1.KpiCategory] }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], KpisController.prototype, "findAllCategories", null);
 __decorate([
     (0, common_1.Get)(':id'),
     (0, swagger_1.ApiOperation)({ summary: 'Get a KPI by ID' }),
@@ -181,14 +189,6 @@ __decorate([
     __metadata("design:paramtypes", [create_kpi_category_dto_1.CreateKpiCategoryDto]),
     __metadata("design:returntype", Promise)
 ], KpisController.prototype, "createCategory", null);
-__decorate([
-    (0, common_1.Get)('categories'),
-    (0, swagger_1.ApiOperation)({ summary: 'Get all KPI categories' }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'KPI categories retrieved successfully' }),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", Promise)
-], KpisController.prototype, "findAllCategories", null);
 __decorate([
     (0, common_1.Get)('categories/:id'),
     (0, swagger_1.ApiOperation)({ summary: 'Get a KPI category by ID' }),

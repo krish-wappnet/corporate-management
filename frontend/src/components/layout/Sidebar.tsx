@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAppSelector } from '../../store/store';
 import { cn } from '../../lib/utils';
-import { LayoutDashboard, Users, Briefcase, ClipboardList, FileText, Settings, ChevronDown } from 'lucide-react';
+import { LayoutDashboard, Users, Briefcase, ClipboardList, FileText, Settings, ChevronDown, Target, BarChart2, Tag } from 'lucide-react';
 import type { NavItem, SidebarNavProps } from '../../types/navigation';
 
 // Define navigation items
@@ -74,6 +74,52 @@ const navItems: NavItem[] = [
     ]
   },
   {
+    title: 'KPIs',
+    path: '/kpis',
+    icon: Target,
+    roles: ['admin', 'manager', 'employee'],
+    children: [
+      {
+        title: 'All KPIs',
+        path: '/kpis',
+        icon: Target,
+        roles: ['admin', 'manager', 'employee']
+      },
+      {
+        title: 'Create KPI',
+        path: '/kpis/new',
+        icon: Target,
+        roles: ['admin', 'manager']
+      },
+      {
+        title: 'KPI Analytics',
+        path: '/analytics/kpis',
+        icon: BarChart2,
+        roles: ['admin', 'manager']
+      }
+    ]
+  },
+  {
+    title: 'Categories',
+    path: '/categories',
+    icon: Tag,
+    roles: ['admin', 'manager'],
+    children: [
+      {
+        title: 'All Categories',
+        path: '/categories',
+        icon: Tag,
+        roles: ['admin', 'manager']
+      },
+      {
+        title: 'Add Category',
+        path: '/categories/new',
+        icon: Tag,
+        roles: ['admin', 'manager']
+      }
+    ]
+  },
+  {
     title: 'Reports',
     path: '/reports',
     icon: FileText,
@@ -107,7 +153,7 @@ const navItems: NavItem[] = [
   }
 ];
 
-const Sidebar: React.FC<SidebarNavProps> = ({ isOpen, onClose }) => {
+const Sidebar: React.FC<SidebarNavProps> = ({ isOpen }) => {
   const { user } = useAppSelector((state) => state.auth);
   const location = useLocation();
   const [openItems, setOpenItems] = React.useState<Record<string, boolean>>({});

@@ -1,9 +1,10 @@
 import { KpiStatus, KpiType } from '../entities/kpi.entity';
+import { MetricDto } from './metric.dto';
 export declare class CreateKpiDto {
     title: string;
     description: string;
     type?: KpiType;
-    metrics?: Record<string, any>;
+    metrics?: MetricDto[];
     targetValue: number;
     currentValue?: number;
     weight?: number;

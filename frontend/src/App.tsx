@@ -2,6 +2,8 @@ import React, { useEffect } from 'react';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { BrowserRouter as Router, useNavigate } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { store, persistor, useAppDispatch } from './store/store';
 import AppRoutes from './routes';
 import { loadUser } from './store/slices/authSlice';
@@ -59,7 +61,23 @@ const AuthInitializer: React.FC<{ onInitialized: () => void }> = ({ onInitialize
 
 // App Content Component
 const AppContent: React.FC = () => {
-  return <AppRoutes />;
+  return (
+    <>
+      <AppRoutes />
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
+    </>
+  );
 };
 
 // Main App component

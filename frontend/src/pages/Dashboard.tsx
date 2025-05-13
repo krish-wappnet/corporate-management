@@ -2,7 +2,6 @@ import React, { useEffect, useCallback, useState, useRef } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/store';
 import { logout } from '../store/slices/authSlice';
 import { useNavigate } from 'react-router-dom';
-import UserMenu from '../components/UserMenu';
 import { Modal } from '../components/common/Modal';
 import { RoleBasedDashboard } from './dashboard/RoleBasedDashboard';
 import type { User } from '../types';

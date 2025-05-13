@@ -7,6 +7,8 @@ import Auth from '../components/auth/Auth';
 import Dashboard from '../pages/Dashboard';
 import EmployeesPage from '../pages/employees/EmployeesPage';
 import AddEmployeePage from '../pages/employees/AddEmployeePage';
+import { KpiListPage, KpiFormPage, KpiDetailPage, KpiAnalyticsPage } from '../pages/kpis';
+import { CategoriesListPage, AddCategoryPage, EditCategoryPage } from '../pages/categories';
 import NotFound from '../pages/NotFound';
 
 interface ProtectedRouteProps {
@@ -32,23 +34,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   return <>{children}</>;
 };
 
-interface GuestRouteProps {
-  children: React.ReactNode;
-}
 
-const GuestRoute: React.FC<GuestRouteProps> = ({ children }) => {
-  const { loading } = useAppSelector((state) => state.auth);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  return <>{children}</>;
-};
 
 const AppRoutes: React.FC = () => {
   return (
@@ -99,6 +85,94 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute>
             <Layout>
               <AddEmployeePage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      
+      {/* Category Routes */}
+      <Route
+        path="/categories"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <CategoriesListPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/categories/new"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <AddCategoryPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/categories/edit/:id"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <EditCategoryPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* KPI Routes */}
+      <Route
+        path="/kpis"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <KpiListPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/kpis/new"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <KpiFormPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/kpis/edit/:id"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <KpiFormPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/kpis/:id"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <KpiDetailPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/analytics/kpis"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <KpiAnalyticsPage />
             </Layout>
           </ProtectedRoute>
         }

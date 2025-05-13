@@ -5,6 +5,7 @@ import storage from 'redux-persist/lib/storage';
 import authReducer from './slices/authSlice';
 import userReducer from './slices/userSlice';
 import okrReducer from './slices/okrSlice';
+import kpiReducer from './slices/kpiSlice';
 
 // Persist configuration for auth slice
 const authPersistConfig = {
@@ -18,6 +19,7 @@ const appReducer = combineReducers({
   auth: persistReducer(authPersistConfig, authReducer),
   users: userReducer,
   okrs: okrReducer,
+  kpis: kpiReducer,
 });
 
 // Root reducer with state reset on logout
