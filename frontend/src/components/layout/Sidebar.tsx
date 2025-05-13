@@ -157,15 +157,21 @@ const Sidebar: React.FC<SidebarNavProps> = ({ isOpen, onClose }) => {
               }
             }}
             className={cn(
-              'flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors',
-              'hover:bg-gray-100 dark:hover:bg-gray-800',
+              'flex items-center px-4 py-2 text-sm font-medium rounded-md transition-all',
+              'hover:bg-gray-100 hover:text-accent',
               isItemActive || isChildActive
-                ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
-                : 'text-gray-700 dark:text-gray-300',
+                ? 'bg-blue-50 text-secondary'
+                : 'text-gray-700',
               level > 0 ? `pl-${level * 4 + 4}` : ''
             )}
+            aria-label={item.title}
           >
-            <item.icon className="mr-3 h-5 w-5 flex-shrink-0" />
+            <item.icon
+              className={cn(
+                'mr-3 h-5 w-5 flex-shrink-0',
+                isItemActive || isChildActive ? 'text-secondary' : 'text-gray-500'
+              )}
+            />
             <span className="flex-1">{item.title}</span>
             {hasChildren && (
               <ChevronDown
@@ -173,6 +179,7 @@ const Sidebar: React.FC<SidebarNavProps> = ({ isOpen, onClose }) => {
                   'h-4 w-4 transform transition-transform',
                   isOpen ? 'rotate-180' : ''
                 )}
+                aria-expanded={isOpen}
               />
             )}
           </NavLink>
@@ -180,7 +187,7 @@ const Sidebar: React.FC<SidebarNavProps> = ({ isOpen, onClose }) => {
           {hasChildren && (
             <div
               className={cn(
-                'overflow-hidden transition-all duration-200',
+                'overflow-hidden transition-all duration-300',
                 isOpen ? 'max-h-96' : 'max-h-0'
               )}
             >
@@ -197,21 +204,21 @@ const Sidebar: React.FC<SidebarNavProps> = ({ isOpen, onClose }) => {
   return (
     <div
       className={cn(
-        'fixed inset-y-0 left-0 z-30 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800',
-        'transform transition-transform duration-200 ease-in-out',
+        'fixed inset-y-0 left-0 z-30 w-64 bg-white border-r border-gray-200',
+        'transform transition-transform duration-300 ease-in-out',
         isOpen ? 'translate-x-0' : '-translate-x-full',
         'md:translate-x-0 md:static md:inset-0',
-        'overflow-y-auto'
+        'flex flex-col h-screen overflow-y-auto'
       )}
     >
-      <div className="flex flex-col h-full">
-        <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200 dark:border-gray-800">
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+      <div className="flex flex-col flex-1">
+        <div className="flex items-center h-16 px-4 border-b border-gray-200 flex-shrink-0">
+          <h1 className="text-xl font-bold text-primary">
             HR Analytics
           </h1>
         </div>
         
-        <nav className="flex-1 px-2 py-4 space-y-1">
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {renderNavItems(filteredNavItems)}
         </nav>
       </div>

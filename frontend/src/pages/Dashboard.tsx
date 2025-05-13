@@ -166,8 +166,7 @@ const Dashboard: React.FC = () => {
       <Modal
         isOpen={showTimeoutModal}
         onClose={() => setShowTimeoutModal(false)}
-        title="Session Timeout Warning"
-        description={`You will be logged out in ${timeLeft} seconds due to inactivity.`}
+  
       >
         <div className="mt-4 flex justify-end space-x-3">
           <button
