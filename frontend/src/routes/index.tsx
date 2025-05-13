@@ -5,6 +5,7 @@ import Layout from '../components/layout/Layout';
 import Home from '../pages/Home';
 import Auth from '../components/auth/Auth';
 import Dashboard from '../pages/Dashboard';
+import EmployeesPage from '../pages/employees/EmployeesPage';
 import NotFound from '../pages/NotFound';
 
 interface ProtectedRouteProps {
@@ -75,6 +76,17 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute>
             <Layout>
               <Dashboard />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/employees"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <EmployeesPage />
             </Layout>
           </ProtectedRoute>
         }
