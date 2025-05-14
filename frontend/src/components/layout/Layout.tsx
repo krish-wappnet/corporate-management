@@ -22,7 +22,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
+    setSidebarOpen(prev => !prev);
+  };
+
+  const closeSidebar = () => {
+    setSidebarOpen(false);
   };
 
   const toggleUserMenu = (e: React.MouseEvent) => {
@@ -58,7 +62,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <aside className={`fixed inset-y-0 left-0 z-30 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       } md:translate-x-0 md:static`}>
-        <Sidebar isOpen={sidebarOpen} onClose={toggleSidebar} />
+        <Sidebar isOpen={sidebarOpen} onClose={closeSidebar} />
       </aside>
 
       <div className="flex-1 flex flex-col overflow-hidden">

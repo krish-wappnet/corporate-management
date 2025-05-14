@@ -1,0 +1,226 @@
+import React, { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { Card, Row, Col, Typography, Progress, Spin } from 'antd';
+import { 
+  CheckCircleOutlined, 
+  ExclamationCircleOutlined, 
+  BarChartOutlined
+} from '@ant-design/icons';
+
+// Types
+type TopPerformingOkr = {
+  title: string;
+  progress: number;
+  description: string;
+  dueDate: string;
+  status: string;
+};
+
+type UserProgress = {
+  activeOkrs: number;
+  averageProgress: number;
+  atRisk?: number;
+  topPerformingOkr: TopPerformingOkr | null;
+};
+
+type CompletionRate = {
+  total: number;
+  completed: number;
+  rate: number;
+};
+
+// Mock selectors (replace with actual selectors from your store)
+const selectCompletionRate = (state: any): CompletionRate => ({
+  total: 0,
+  completed: 0,
+  rate: 0,
+  ...state.okr?.completionRate
+});
+
+const selectUserProgress = (state: any): UserProgress => ({
+  activeOkrs: 0,
+  averageProgress: 0,
+  atRisk: 0,
+  topPerformingOkr: null,
+  ...state.okr?.userProgress
+});
+
+// Mock actions (replace with actual actions from your store)
+const fetchCompletionRate = () => ({
+  type: 'okr/fetchCompletionRate'
+});
+
+const fetchUserProgress = (payload: { userId: string }) => ({
+  type: 'okr/fetchUserProgress',
+  payload
+});
+
+const { Title, Text } = Typography;
+
+const OkrAnalyticsPage: React.FC = () => {
+  const dispatch = useDispatch();
+  const completionRate = useSelector(selectCompletionRate);
+  const userProgress = useSelector(selectUserProgress);
+  
+  // Default values
+  const safeCompletionRate: CompletionRate = {
+    total: 0,
+    completed: 0,
+    rate: 0,
+    ...completionRate
+  };
+  
+  const defaultTopPerformingOkr: TopPerformingOkr = {
+    title: 'No OKR data',
+    progress: 0,
+    description: 'No top performing OKR data available',
+    dueDate: '',
+    status: ''
+  };
+
+  const safeUserProgress: UserProgress = {
+    activeOkrs: 0,
+    averageProgress: 0,
+    atRisk: 0,
+    topPerformingOkr: defaultTopPerformingOkr,
+    ...userProgress,
+    topPerformingOkr: userProgress.topPerformingOkr || defaultTopPerformingOkr
+  };
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        await Promise.all([
+          dispatch(fetchCompletionRate() as any),
+          dispatch(fetchUserProgress({ userId: 'current' }) as any)
+        ]);
+      } catch (error) {
+        console.error('Failed to load OKR analytics data:', error);
+      }
+    };
+    
+    loadData();
+  }, [dispatch]);
+
+  const renderStatCard = (title: string, value: string | number, icon: React.ReactNode, color: string) => {
+    let styledIcon = icon;
+    if (React.isValidElement(icon)) {
+      styledIcon = React.cloneElement(icon, { 
+        style: { 
+          color, 
+          fontSize: '20px',
+          ...(icon.props as any)?.style 
+        } 
+      });
+    }
+    
+    return (
+      <Card className="shadow-sm">
+        <div className="flex items-center">
+          <div 
+            className="mr-4 p-3 rounded-full" 
+            style={{ backgroundColor: `${color}20` }}
+          >
+            {styledIcon}
+          </div>
+          <div>
+            <Text type="secondary" className="block text-sm">{title}</Text>
+            <Title level={3} className="mt-1 mb-0" style={{ color }}>{value}</Title>
+          </div>
+        </div>
+      </Card>
+    );
+  };
+
+  const renderChartPlaceholder = (title: string, icon: React.ReactNode) => (
+    <Card title={title}>
+      <div className="flex flex-col items-center justify-center p-8 text-center">
+        <div className="text-4xl text-gray-300 mb-4">
+          {icon}
+        </div>
+        <Text type="secondary">Chart visualization coming soon</Text>
+      </div>
+    </Card>
+  );
+
+  if (!safeUserProgress) {
+    return <Spin size="large" className="flex items-center justify-center h-64" />;
+  }
+
+  const { activeOkrs, averageProgress, atRisk } = safeUserProgress;
+  const { completed } = safeCompletionRate;
+  const okrsAtRisk = atRisk || 0;
+  const topPerformingOkr = safeUserProgress.topPerformingOkr || defaultTopPerformingOkr;
+
+  return (
+    <div className="okr-analytics-page">
+      <Title level={3} className="mb-6">OKR Analytics</Title>
+      
+      <Row gutter={[16, 16]} className="mb-6">
+        <Col xs={24} sm={12} md={6}>
+          {renderStatCard(
+            'Active OKRs', 
+            activeOkrs,
+            <BarChartOutlined />,
+            '#1890ff'
+          )}
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          {renderStatCard(
+            'Avg. Progress', 
+            `${averageProgress}%`,
+            <CheckCircleOutlined />,
+            '#52c41a'
+          )}
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          {renderStatCard(
+            'Completion Rate', 
+            `${completed}%`,
+            <CheckCircleOutlined />,
+            '#722ed1'
+          )}
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          {renderStatCard(
+            'At Risk', 
+            okrsAtRisk,
+            <ExclamationCircleOutlined />,
+            '#faad14'
+          )}
+        </Col>
+      </Row>
+
+      <Row gutter={[16, 16]} className="mb-6">
+        <Col xs={24} lg={12}>
+          {renderChartPlaceholder('OKR Progress', <BarChartOutlined />)}
+        </Col>
+        <Col xs={24} lg={12}>
+          {renderChartPlaceholder('Completion Trend', <BarChartOutlined />)}
+        </Col>
+      </Row>
+
+      <Card title="Top Performing OKR" className="mb-6">
+        <div>
+          <Title level={5} className="mb-2">{topPerformingOkr.title}</Title>
+          <Text type="secondary" className="block mb-4">
+            {topPerformingOkr.description}
+          </Text>
+          <div className="flex items-center">
+            <div className="flex-1">
+              <Progress 
+                percent={topPerformingOkr.progress} 
+                status={topPerformingOkr.progress === 100 ? 'success' : 'active'}
+              />
+            </div>
+            <Text strong className="ml-4">
+              {topPerformingOkr.progress}% Complete
+            </Text>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+};
+
+export default OkrAnalyticsPage;

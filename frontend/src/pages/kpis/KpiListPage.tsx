@@ -10,11 +10,10 @@ import {
 import type { Kpi } from '../../types/kpi';
 import type { PaginationParams } from '../../types/kpi';
 import { KpiStatus } from '../../types/kpi';
-import { Button, Table, Space, Tag, Select, Input, DatePicker, Card, Row, Col, Typography, Popconfirm, message } from 'antd';
+import { Button, Table, Space, Tag, Select, Input, DatePicker, Card, Row, Col, Popconfirm, message } from 'antd';
 import { PlusOutlined, SearchOutlined, FilterOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
-const { Title } = Typography;
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 
@@ -69,22 +68,19 @@ const KpiListPage: React.FC = () => {
   const handleTableChange = (tablePagination: any, _: any, sorter: any) => {
     console.log('Table changed:', { tablePagination, sorter });
     
-    // Update pagination with sorting
     const paginationParams: PaginationParams = {
       page: tablePagination.current,
       limit: tablePagination.pageSize,
     };
     
-    // Add sorting if specified
     if (sorter.field) {
       paginationParams.sortBy = sorter.field;
       paginationParams.sortOrder = sorter.order === 'ascend' ? 'asc' : 'desc';
     }
     
-    // Dispatch fetch with updated pagination and filters
     dispatch(fetchKpis({
       pagination: paginationParams,
-      filters: { ...filters }, // Keep existing filters
+      filters: { ...filters },
     }));
   };
 
@@ -120,9 +116,9 @@ const KpiListPage: React.FC = () => {
   const handleDelete = async (id: string) => {
     try {
       await dispatch(deleteKpi(id)).unwrap();
-      message.success('KPI deleted successfully');
+      message.success('KPI deleted successfully', 3);
     } catch (error) {
-      message.error('Failed to delete KPI');
+      message.error('Failed to delete KPI', 3);
     }
   };
 
@@ -132,7 +128,11 @@ const KpiListPage: React.FC = () => {
       dataIndex: 'title',
       key: 'title',
       render: (text: string, record: Kpi) => (
-        <Button type="link" onClick={() => navigate(`/kpis/${record.id}`)}>
+        <Button 
+          type="link" 
+          onClick={() => navigate(`/kpis/${record.id}`)} 
+          className="text-secondary hover:text-accent transition-colors p-0"
+        >
           {text}
         </Button>
       ),
@@ -156,7 +156,7 @@ const KpiListPage: React.FC = () => {
           default:
             color = 'default';
         }
-        return <Tag color={color}>{status.toUpperCase()}</Tag>;
+        return <Tag color={color} className="text-gray-900 font-medium">{status.toUpperCase()}</Tag>;
       },
     },
     {
@@ -172,8 +172,8 @@ const KpiListPage: React.FC = () => {
         const percentage = target > 0 ? Math.round((current / target) * 100) : 0;
         
         return (
-          <div>
-            {current.toLocaleString()} / {target.toLocaleString()} ({percentage}%)
+          <div className="text-gray-900">
+            {current.toLocaleString()} / {target.toLocaleString()} <span className="text-accent font-medium">({percentage}%)</span>
           </div>
         );
       },
@@ -182,16 +182,17 @@ const KpiListPage: React.FC = () => {
       title: 'Due Date',
       dataIndex: 'endDate',
       key: 'endDate',
-      render: (date: string) => dayjs(date).format('MMM D, YYYY'),
+      render: (date: string) => (
+        <span className="text-gray-900">{dayjs(date).format('MMM D, YYYY')}</span>
+      ),
     },
     {
       title: 'Category',
       dataIndex: 'category',
       key: 'category',
       render: (_, record: Kpi) => {
-        // Find the category by ID from the categories array
         const category = categories?.find(cat => cat.id === record.categoryId);
-        return category?.name || 'Uncategorized';
+        return <span className="text-gray-900">{category?.name || 'Uncategorized'}</span>;
       },
     },
     {
@@ -202,14 +203,19 @@ const KpiListPage: React.FC = () => {
           <Button
             icon={<EditOutlined />}
             onClick={() => navigate(`/kpis/edit/${record.id}`)}
+            className="text-secondary hover:text-accent border-none shadow-none transition-colors"
           />
           <Popconfirm
             title="Are you sure you want to delete this KPI?"
             onConfirm={() => handleDelete(record.id)}
             okText="Yes"
             cancelText="No"
+            overlayClassName="rounded-lg"
           >
-            <Button danger icon={<DeleteOutlined />} />
+            <Button
+              icon={<DeleteOutlined />}
+              className="text-red-600 hover:text-red-700 border-none shadow-none transition-colors"
+            />
           </Popconfirm>
         </Space>
       ),
@@ -217,99 +223,105 @@ const KpiListPage: React.FC = () => {
   ];
 
   return (
-    <div className="kpi-list-page">
-      <Title level={2}>Key Performance Indicators</Title>
-      
-      <Card style={{ marginBottom: 16 }}>
-        <Row gutter={[16, 16]} align="middle">
-          <Col xs={24} sm={12} md={6}>
-            <Input
-              placeholder="Search KPIs..."
-              prefix={<SearchOutlined />}
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              onPressEnter={handleSearch}
-            />
-          </Col>
-          <Col xs={24} sm={12} md={4}>
-            <Select
-              placeholder="Status"
-              style={{ width: '100%' }}
-              allowClear
-              onChange={handleStatusChange}
-              value={filters.status}
-            >
-              {Object.values(KpiStatus).map((status) => (
-                <Option key={status} value={status}>
-                  {status.charAt(0).toUpperCase() + status.slice(1)}
-                </Option>
-              ))}
-            </Select>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Select
-              placeholder="Category"
-              style={{ width: '100%' }}
-              allowClear
-              onChange={handleCategoryChange}
-              value={filters.categoryId}
-            >
-              {Array.isArray(categories) && categories.map((category) => (
-                <Option key={category.id} value={category.id}>
-                  {category.name}
-                </Option>
-              ))}
-            </Select>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <RangePicker
-              style={{ width: '100%' }}
-              value={dateRange}
-              onChange={(dates) => setDateRange(dates)}
-            />
-          </Col>
-          <Col xs={24} sm={12} md={2}>
-            <Button 
-              type="primary" 
-              icon={<FilterOutlined />} 
-              onClick={handleSearch}
-              block
-            >
-              Filter
-            </Button>
-          </Col>
-        </Row>
-      </Card>
-
-      <Card>
-        <div style={{ marginBottom: 16, textAlign: 'right' }}>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => navigate('/kpis/create')}
-          >
-            Create KPI
-          </Button>
-        </div>
+    <div className="min-h-screen bg-gray-50 font-inter p-6 sm:p-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <h2 className="text-3xl font-bold text-gray-900">Key Performance Indicators</h2>
         
-        <Table
-          columns={columns}
-          dataSource={kpis || []}
-          rowKey="id"
-          loading={loading}
-          pagination={{
-            current: pagination.page,
-            pageSize: pagination.limit,
-            total: pagination.total,
-            showSizeChanger: true,
-            showTotal: (total) => `Total ${total} items`,
-          }}
-          onChange={handleTableChange}
-          locale={{
-            emptyText: kpis === null ? 'Loading...' : 'No data'
-          }}
-        />
-      </Card>
+        <Card className="bg-white border border-gray-200 rounded-xl shadow-md hover:shadow-lg transition-all animate-fadeIn p-4 sm:p-6">
+          <Row gutter={[16, 16]} align="middle">
+            <Col xs={24} sm={12} md={6}>
+              <Input
+                placeholder="Search KPIs..."
+                prefix={<SearchOutlined className="text-gray-500 mr-2" />}
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                onPressEnter={handleSearch}
+                className="border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-secondary focus:ring-offset-1 focus:border-secondary transition-all text-gray-900 placeholder-gray-400 px-4 py-2 h-10"
+              />
+            </Col>
+            <Col xs={24} sm={12} md={4}>
+              <Select
+                placeholder="Status"
+                className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-secondary focus:ring-offset-1 focus:border-secondary transition-all text-gray-900 placeholder-gray-400 h-10"
+                dropdownClassName="rounded-lg"
+                allowClear
+                onChange={handleStatusChange}
+                value={filters.status}
+              >
+                {Object.values(KpiStatus).map((status) => (
+                  <Option key={status} value={status}>
+                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                  </Option>
+                ))}
+              </Select>
+            </Col>
+            <Col xs={24} sm={12} md={6}>
+              <Select
+                placeholder="Category"
+                className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-secondary focus:ring-offset-1 focus:border-secondary transition-all text-gray-900 placeholder-gray-400 h-10"
+                dropdownClassName="rounded-lg"
+                allowClear
+                onChange={handleCategoryChange}
+                value={filters.categoryId}
+              >
+                {Array.isArray(categories) && categories.map((category) => (
+                  <Option key={category.id} value={category.id}>
+                    {category.name}
+                  </Option>
+                ))}
+              </Select>
+            </Col>
+            <Col xs={24} sm={12} md={6}>
+              <RangePicker
+                className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-secondary focus:ring-offset-1 focus:border-secondary transition-all text-gray-900 placeholder-gray-400 h-10"
+                value={dateRange}
+                onChange={(dates) => setDateRange(dates)}
+              />
+            </Col>
+            <Col xs={24} sm={12} md={2}>
+              <Button
+                onClick={handleSearch}
+                className="w-full bg-black text-white hover:bg-gray-800 border-none rounded-lg shadow-md transition-all transform hover:scale-105 h-10"
+                icon={<FilterOutlined />}
+              >
+                Filter
+              </Button>
+            </Col>
+          </Row>
+        </Card>
+
+        <Card className="bg-white border border-gray-200 rounded-xl shadow-md hover:shadow-lg transition-all animate-fadeIn p-4 sm:p-6">
+          <div className="flex justify-end mb-4">
+            <Button
+              onClick={() => navigate('/kpis/create')}
+              className="bg-black text-white hover:bg-gray-800 border-none rounded-lg shadow-md transition-all transform hover:scale-105 px-4 py-2"
+              icon={<PlusOutlined />}
+            >
+              Create KPI
+            </Button>
+          </div>
+          
+          <Table
+            columns={columns}
+            dataSource={kpis || []}
+            rowKey="id"
+            loading={loading}
+            pagination={{
+              current: pagination.page,
+              pageSize: pagination.limit,
+              total: pagination.total,
+              showSizeChanger: true,
+              showTotal: (total) => `Total ${total} items`,
+              className: "mt-4",
+            }}
+            onChange={handleTableChange}
+            locale={{
+              emptyText: kpis === null ? 'Loading...' : 'No data'
+            }}
+            className="custom-table"
+          />
+        </Card>
+      </div>
     </div>
   );
 };

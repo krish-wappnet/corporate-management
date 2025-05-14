@@ -53,4 +53,4 @@ export type AppThunk<ReturnType = void> = ThunkAction<
 // Create the persistor
 const persistor = persistStore(store);
 
-export { store, persistor };
+export { store, persistor, type RootState };

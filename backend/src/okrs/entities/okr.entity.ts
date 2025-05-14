@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { KeyResult } from './key-result.entity';
+import { Department } from '../../departments/entities/department.entity';
 
 export enum OkrStatus {
   DRAFT = 'draft',
@@ -71,10 +72,14 @@ export class Okr {
   @Column({ type: 'decimal', precision: 5, scale: 2, default: 0 })
   progress: number;
 
-  @Column({ nullable: true })
+  @Column({ name: 'department_id', nullable: true })
   departmentId: string;
 
-  @Column({ nullable: true })
+  @ManyToOne(() => Department, { nullable: true })
+  @JoinColumn({ name: 'department_id' })
+  department: Department;
+
+  @Column({ name: 'parent_okr_id', nullable: true })
   parentOkrId: string;
 
   @ManyToOne(() => Okr, { nullable: true, onDelete: 'SET NULL' })

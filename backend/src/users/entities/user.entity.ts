@@ -17,6 +17,7 @@ import { Kpi } from '../../kpis/entities/kpi.entity';
 import { Okr } from '../../okrs/entities/okr.entity';
 import { Feedback } from '../../feedback/entities/feedback.entity';
 import { PerformanceReview } from '../../performance/entities/performance-review.entity';
+import { Department } from '../../departments/entities/department.entity';
 
 @Entity('users')
 @Unique(['email'])
@@ -51,12 +52,14 @@ export class User {
   @Column({ nullable: true })
   department: string;
 
-  @Column({ name: 'manager_id', nullable: true })
+  @Column({
+    name: 'manager_id',
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+    comment: 'Stores the manager ID as a string (e.g., "john-doe-123")',
+  })
   managerId: string | null;
-
-  @ManyToOne(() => User, { onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'manager_id' })
-  manager: User | null;
 
   @OneToMany(() => Kpi, (kpi) => kpi.user)
   kpis: Kpi[];
@@ -76,13 +79,10 @@ export class User {
   @OneToMany(() => PerformanceReview, (review) => review.reviewer)
   reviewsGiven: PerformanceReview[];
 
-  @ManyToMany(() => User, { cascade: true })
-  @JoinTable({
-    name: 'user_reports',
-    joinColumn: { name: 'manager_id', referencedColumnName: 'id' },
-    inverseJoinColumn: { name: 'employee_id', referencedColumnName: 'id' },
-  })
-  directReports: User[];
+  @OneToMany(() => Department, (department) => department.manager)
+  managedDepartments: Department[];
+
+  // Direct reports are now handled through the managerId field in the service layer
 
   @CreateDateColumn()
   createdAt: Date;

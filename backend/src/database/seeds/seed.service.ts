@@ -85,11 +85,10 @@ export class SeedService {
       managerId: savedManager.id,
     });
 
+    // Set managerId for employees
+    employee1.managerId = savedManager.id;
+    employee2.managerId = savedManager.id;
     await this.usersRepository.save([employee1, employee2]);
-
-    // Add direct reports to manager
-    savedManager.directReports = [employee1, employee2];
-    await this.usersRepository.save(savedManager);
   }
 
   private async seedKpiCategories(): Promise<void> {

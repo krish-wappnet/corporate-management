@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { RootState } from '../rootReducer';
-import api from '../../services/api';
+import api, { setToken } from '../../services/api';
 import type { User } from '../../types';
 
 interface AuthState {
@@ -26,10 +26,10 @@ const isTokenExpired = (token: string | null): boolean => {
 const token = localStorage.getItem('token');
 const userFromStorage = localStorage.getItem('user');
 
-// Set auth token in API headers if it exists
+// Set auth token in API service if it exists
 if (token) {
   try {
-    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    setToken(token);
   } catch (error) {
     console.error('Error setting auth token:', error);
   }
@@ -57,13 +57,16 @@ export const login = createAsyncThunk(
         throw new Error('Invalid response from server');
       }
       
-      // Store token and user in localStorage
-      localStorage.setItem('token', response.data.access_token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+      const { access_token, user } = response.data;
+      
+      // Update token in API service and localStorage
+      setToken(access_token);
+      localStorage.setItem('token', access_token);
+      localStorage.setItem('user', JSON.stringify(user));
       
       return {
-        user: response.data.user,
-        access_token: response.data.access_token
+        user,
+        access_token
       };
     } catch (error: any) {
       console.error('Login error:', error);
@@ -108,13 +111,16 @@ export const register = createAsyncThunk(
         throw new Error('Invalid response from server');
       }
       
-      // Store token and user in localStorage
-      localStorage.setItem('token', response.data.access_token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+      const { access_token, user } = response.data;
+      
+      // Update token in API service and localStorage
+      setToken(access_token);
+      localStorage.setItem('token', access_token);
+      localStorage.setItem('user', JSON.stringify(user));
       
       return {
-        user: response.data.user,
-        access_token: response.data.access_token
+        user,
+        access_token
       };
     } catch (error: any) {
       console.error('Registration error:', error);
@@ -137,8 +143,8 @@ export const loadUser = createAsyncThunk<User, void, { state: RootState }>(
     }
     
     try {
-      // Set the token in the API headers
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      // Set the token in the API service
+      setToken(token);
       
       // Get user data from localStorage (set during login)
       const userData = localStorage.getItem('user');
@@ -154,7 +160,7 @@ export const loadUser = createAsyncThunk<User, void, { state: RootState }>(
       // Clear invalid credentials
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      delete api.defaults.headers.common['Authorization'];
+      setToken('');
       return rejectWithValue('Failed to load user data. Please log in again.');
     }
   }
@@ -172,8 +178,8 @@ export const logout = createAsyncThunk<boolean, void, { state: RootState }>(
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       
-      // Clear any auth headers
-      delete api.defaults.headers.common['Authorization'];
+      // Clear the token from the API service
+      setToken('');
       
       return true;
     } catch (error: any) {
@@ -244,9 +250,9 @@ const authSlice = createSlice({
       state.token = action.payload.access_token; // Changed from token to access_token
       state.error = null;
       
-      // Set the token in the API headers
+      // Set the token in the API service
       if (action.payload.access_token) {
-        api.defaults.headers.common['Authorization'] = `Bearer ${action.payload.access_token}`;
+        setToken(action.payload.access_token);
       }
     });
     builder.addCase(login.rejected, (state, action) => {
@@ -258,7 +264,7 @@ const authSlice = createSlice({
       // Clear localStorage on login failure
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      delete api.defaults.headers.common['Authorization'];
+      setToken('');
     });
 
     // Register
@@ -273,9 +279,9 @@ const authSlice = createSlice({
       state.token = action.payload.access_token; // Changed from token to access_token
       state.error = null;
       
-      // Set the token in the API headers
+      // Set the token in the API service
       if (action.payload.access_token) {
-        api.defaults.headers.common['Authorization'] = `Bearer ${action.payload.access_token}`;
+        setToken(action.payload.access_token);
       }
     });
     builder.addCase(register.rejected, (state, action) => {
@@ -287,7 +293,7 @@ const authSlice = createSlice({
       // Clear localStorage on registration failure
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      delete api.defaults.headers.common['Authorization'];
+      setToken('');
     });
   },
 });

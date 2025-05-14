@@ -103,6 +103,7 @@ export interface PaginationParams {
 }
 
 export interface PaginatedResponse<T> {
+  items: never[];
   data: T[];
   total: number;
   page: number;

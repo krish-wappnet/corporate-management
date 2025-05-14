@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAppSelector } from '../../store/store';
 import { cn } from '../../lib/utils';
-import { LayoutDashboard, Users, Briefcase, ClipboardList, FileText, Settings, ChevronDown, Target, BarChart2, Tag } from 'lucide-react';
+import { LayoutDashboard, Users, Briefcase, ClipboardList, FileText, Settings, ChevronDown, Target, BarChart2, Tag, Target as OkrIcon, BarChart as AnalyticsIcon } from 'lucide-react';
 import type { NavItem, SidebarNavProps } from '../../types/navigation';
 
 // Define navigation items
@@ -69,6 +69,26 @@ const navItems: NavItem[] = [
         title: 'Create Project',
         path: '/projects/new',
         icon: ClipboardList,
+        roles: ['admin', 'manager']
+      }
+    ]
+  },
+  {
+    title: 'OKRs',
+    path: '/okrs',
+    icon: OkrIcon,
+    roles: ['admin', 'manager', 'employee'],
+    children: [
+      {
+        title: 'All OKRs',
+        path: '/okrs',
+        icon: OkrIcon,
+        roles: ['admin', 'manager', 'employee']
+      },
+      {
+        title: 'Analytics',
+        path: '/okr-analytics',
+        icon: AnalyticsIcon,
         roles: ['admin', 'manager']
       }
     ]
@@ -153,7 +173,7 @@ const navItems: NavItem[] = [
   }
 ];
 
-const Sidebar: React.FC<SidebarNavProps> = ({ isOpen }) => {
+const Sidebar: React.FC<SidebarNavProps> = ({ isOpen, onClose }) => {
   const { user } = useAppSelector((state) => state.auth);
   const location = useLocation();
   const [openItems, setOpenItems] = React.useState<Record<string, boolean>>({});
@@ -200,6 +220,9 @@ const Sidebar: React.FC<SidebarNavProps> = ({ isOpen }) => {
               if (hasChildren) {
                 e.preventDefault();
                 toggleItem(item.path);
+              } else {
+                // Close the sidebar when a navigation item is clicked (for mobile)
+                onClose?.();
               }
             }}
             className={cn(
