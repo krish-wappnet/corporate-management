@@ -24,6 +24,7 @@ export interface CreateOkrDto {
   endDate: string;
   departmentId?: string;
   parentOkrId?: string;
+  keyResults?: Array<Omit<CreateKeyResultDto, 'okrId'>>;
 }
 
 export interface UpdateOkrDto extends Partial<CreateOkrDto> {}

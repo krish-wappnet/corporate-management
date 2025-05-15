@@ -10,7 +10,7 @@ export declare class UsersService {
     constructor(usersRepository: Repository<User>);
     private generateManagerId;
     create(createUserDto: CreateUserDto): Promise<User>;
-    findAll(paginationDto?: PaginationDto, search?: string, department?: string): Promise<PaginationResponseDto<User>>;
+    findAll(paginationDto?: PaginationDto, department?: string): Promise<PaginationResponseDto<User>>;
     findOne(id: string): Promise<User>;
     findByEmail(email: string): Promise<User>;
     update(id: string, updateUserDto: UpdateUserDto): Promise<User>;
@@ -19,4 +19,5 @@ export declare class UsersService {
     assignDirectReport(managerId: string, employeeId: string): Promise<User>;
     removeDirectReport(managerId: string, employeeId: string): Promise<User>;
     getDepartments(): Promise<string[]>;
+    findManagers(search?: string): Promise<User[]>;
 }

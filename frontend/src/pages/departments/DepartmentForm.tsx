@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Form, Input, Button, Card, Typography, Select, message, Spin } from 'antd';
+import { Form, Input, Button, Card, Select, message, Spin } from 'antd';
 import axios from 'axios';
 import type { Department } from '../../services/departmentService';
 import api from '../../services/api';
 
-const { Title } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
 
@@ -35,10 +34,8 @@ const DepartmentForm = ({ isEdit = false }: DepartmentFormProps) => {
       try {
         setLoading(true);
         
-        // Fetch users with manager role
         const token = localStorage.getItem('token');
         
-        // Debug: Log token and user info
         console.log('Current token:', token);
         console.log('User from localStorage:', localStorage.getItem('user'));
         
@@ -47,7 +44,6 @@ const DepartmentForm = ({ isEdit = false }: DepartmentFormProps) => {
           throw new Error('Authentication required. Please log in again.');
         }
         
-        // Create a new axios instance to avoid interceptor issues
         const authAxios = axios.create({
           baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
           headers: {
@@ -56,7 +52,6 @@ const DepartmentForm = ({ isEdit = false }: DepartmentFormProps) => {
           }
         });
         
-        // First, fetch all users
         const response = await authAxios.get('/users', {
           params: {
             page: 1,
@@ -65,7 +60,6 @@ const DepartmentForm = ({ isEdit = false }: DepartmentFormProps) => {
         });
         
         if (response.data && response.data.items) {
-          // Filter users to only include those with manager role
           const managers = response.data.items.filter((user: any) => 
             user.roles && user.roles.includes('manager')
           );
@@ -77,7 +71,6 @@ const DepartmentForm = ({ isEdit = false }: DepartmentFormProps) => {
           throw new Error('Failed to fetch users. Invalid response format.');
         }
 
-        // If editing, fetch the department data
         if (isEdit && id) {
           const response = await api.get(`/departments/${id}`, {
             params: { include: 'manager' },
@@ -92,7 +85,7 @@ const DepartmentForm = ({ isEdit = false }: DepartmentFormProps) => {
         }
       } catch (error) {
         console.error('Error fetching data:', error);
-        message.error('Failed to load data');
+        message.error('Failed to load data', 3);
       } finally {
         setLoading(false);
       }
@@ -107,114 +100,132 @@ const DepartmentForm = ({ isEdit = false }: DepartmentFormProps) => {
       
       if (isEdit && id) {
         await api.put(`/departments/${id}`, values);
-        message.success('Department updated successfully');
+        message.success('Department updated successfully', 3);
       } else {
         await api.post('/departments', values);
-        message.success('Department created successfully');
+        message.success('Department created successfully', 3);
       }
       
       navigate('/departments');
     } catch (error) {
       console.error('Error saving department:', error);
-      message.error(`Failed to ${isEdit ? 'update' : 'create'} department`);
+      message.error(`Failed to ${isEdit ? 'update' : 'create'} department`, 3);
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="department-form">
-      <Title level={2} className="mb-6">
-        {isEdit ? 'Edit Department' : 'Create New Department'}
-      </Title>
-      
-      <Card>
-        <Spin spinning={loading}>
-          <Form
-            form={form}
-            layout="vertical"
-            onFinish={onFinish}
-            initialValues={{ managerId: undefined }}
-          >
-            <Form.Item
-              name="name"
-              label="Department Name"
-              rules={[
-                { required: true, message: 'Please enter department name' },
-                { max: 100, message: 'Name must be less than 100 characters' },
-              ]}
+    <div className="min-h-screen bg-gray-50 font-inter p-6 sm:p-8">
+      <div className="max-w-2xl mx-auto space-y-6">
+        <h2 className="text-3xl font-bold text-gray-900">
+          {isEdit ? 'Edit Department' : 'Create New Department'}
+        </h2>
+        
+        <Card className="bg-white border border-gray-200 rounded-xl shadow-md hover:shadow-lg transition-all animate-fadeIn p-4 sm:p-6">
+          <Spin spinning={loading} tip="Loading data..." className="text-secondary">
+            <Form
+              form={form}
+              layout="vertical"
+              onFinish={onFinish}
+              initialValues={{ managerId: undefined }}
+              className="space-y-6"
             >
-              <Input placeholder="Enter department name" />
-            </Form.Item>
-
-            <Form.Item
-              name="description"
-              label="Description"
-              rules={[
-                { max: 500, message: 'Description must be less than 500 characters' },
-              ]}
-            >
-              <TextArea rows={4} placeholder="Enter department description" />
-            </Form.Item>
-
-            <Form.Item
-              name="managerId"
-              label="Department Manager"
-              rules={[
-                // Manager is optional
-              ]}
-            >
-              <Select
-                showSearch
-                placeholder="Select a manager"
-                optionFilterProp="children"
-                filterOption={(input, option) =>
-                  (option?.props.children as string)
-                    .toLowerCase()
-                    .indexOf(input.toLowerCase()) >= 0 ||
-                  (option?.props['data-email'] as string || '').toLowerCase().includes(input.toLowerCase())
-                }
-                allowClear
-                style={{ width: '100%' }}
-                optionLabelProp="label"
+              <Form.Item
+                name="name"
+                label={<span className="text-gray-700 font-medium">Department Name</span>}
+                rules={[
+                  { required: true, message: <span className="text-red-600 text-sm">Please enter department name</span> },
+                  { max: 100, message: <span className="text-red-600 text-sm">Name must be less than 100 characters</span> },
+                ]}
+                className="space-y-1"
               >
-                {managers.map((manager) => (
-                  <Option 
-                    key={manager.id} 
-                    value={manager.id}
-                    label={`${manager.firstName} ${manager.lastName}`}
-                    data-email={manager.email}
-                  >
-                    <div className="flex flex-col">
-                      <div className="font-medium">
-                        {manager.firstName} {manager.lastName}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {manager.position || 'No position'}
-                        {manager.department && ` • ${manager.department}`}
-                      </div>
-                      <div className="text-xs text-gray-400">
-                        {manager.email}
-                      </div>
-                    </div>
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
+                <Input
+                  placeholder="Enter department name"
+                  className="border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-secondary focus:ring-offset-1 focus:border-secondary transition-all text-gray-900 placeholder-gray-400 px-4 py-2"
+                />
+              </Form.Item>
 
-            <Form.Item>
-              <div className="space-x-4">
-                <Button type="primary" htmlType="submit" loading={submitting}>
-                  {isEdit ? 'Update' : 'Create'} Department
-                </Button>
-                <Button onClick={() => navigate('/departments')}>
-                  Cancel
-                </Button>
-              </div>
-            </Form.Item>
-          </Form>
-        </Spin>
-      </Card>
+              <Form.Item
+                name="description"
+                label={<span className="text-gray-700 font-medium">Description</span>}
+                rules={[
+                  { max: 500, message: <span className="text-red-600 text-sm">Description must be less than 500 characters</span> },
+                ]}
+                className="space-y-1"
+              >
+                <TextArea
+                  rows={4}
+                  placeholder="Enter department description"
+                  className="border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-secondary focus:ring-offset-1 focus:border-secondary transition-all text-gray-900 placeholder-gray-400 px-4 py-2"
+                />
+              </Form.Item>
+
+              <Form.Item
+                name="managerId"
+                label={<span className="text-gray-700 font-medium">Department Manager</span>}
+                className="space-y-1"
+              >
+                <Select
+                  showSearch
+                  placeholder="Select a manager"
+                  optionFilterProp="children"
+                  filterOption={(input, option) =>
+                    (option?.props.children.props.children[0].props.children as string)
+                      .toLowerCase()
+                      .indexOf(input.toLowerCase()) >= 0 ||
+                    (option?.props['data-email'] as string || '').toLowerCase().includes(input.toLowerCase())
+                  }
+                  allowClear
+                  className="border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-secondary focus:ring-offset-1 focus:border-secondary transition-all text-gray-900 placeholder-gray-400 h-10"
+                  dropdownClassName="rounded-lg"
+                  optionLabelProp="label"
+                >
+                  {managers.map((manager) => (
+                    <Option 
+                      key={manager.id} 
+                      value={manager.id}
+                      label={`${manager.firstName} ${manager.lastName}`}
+                      data-email={manager.email}
+                    >
+                      <div className="flex flex-col py-1">
+                        <div className="font-medium text-gray-900">
+                          {manager.firstName} {manager.lastName}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {manager.position || 'No position'}
+                          {manager.department && ` • ${manager.department}`}
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          {manager.email}
+                        </div>
+                      </div>
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+
+              <Form.Item>
+                <div className="flex space-x-4">
+                  <Button
+                    htmlType="submit"
+                    loading={submitting}
+                    className="bg-black text-white hover:bg-gray-800 border-none rounded-lg shadow-md transition-all transform hover:scale-105 px-4 py-2"
+                  >
+                    {isEdit ? 'Update' : 'Create'} Department
+                  </Button>
+                  <Button
+                    onClick={() => navigate('/departments')}
+                    className="text-gray-700 border-gray-300 hover:bg-gray-100 rounded-lg shadow-sm transition-all transform hover:scale-105 px-4 py-2"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </Form.Item>
+            </Form>
+          </Spin>
+        </Card>
+      </div>
     </div>
   );
 };

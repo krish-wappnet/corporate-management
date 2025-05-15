@@ -1,16 +1,28 @@
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 
-// Store reference to the current token
-let currentToken = localStorage.getItem('token') || '';
+type AxiosRequestConfig = any;
+type AxiosResponse = any;
 
-// Function to get the current token from Redux store
-export const getToken = () => {
-  return currentToken;
+// Function to get the current token from localStorage
+export const getToken = (): string => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('token') || '';
+  }
+  return '';
 };
 
 // Function to update the token
-export const setToken = (token: string) => {
-  currentToken = token;
+export const setToken = (token: string): void => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('token', token);
+  }
+};
+
+// Function to remove the token
+export const removeToken = (): void => {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('token');
+  }
 };
 
 // Create an axios instance with default config
@@ -22,27 +34,89 @@ const api = axios.create({
   timeout: 10000, // 10 seconds
 });
 
+// Custom request config type
+type CustomAxiosRequestConfig = {
+  _retry?: boolean;
+  [key: string]: any;
+  headers?: Record<string, string>;
+  method?: string;
+  url?: string;
+  params?: any;
+  data?: any;
+};
+
 // Add a request interceptor to add the auth token to requests
 api.interceptors.request.use(
-  (config) => {
-    const token = getToken();
-    console.log('API Request Interceptor - Token:', token);
-    console.log('API Request Config:', config);
+  (config: any) => {
+    // Get token from localStorage directly to ensure we have the latest
+    const token = localStorage.getItem('token') || '';
     
+    // Create config object if it doesn't exist
+    const requestConfig: CustomAxiosRequestConfig = {
+      ...config,
+      headers: {
+        ...config.headers,
+        'Content-Type': 'application/json',
+      },
+    };
+    
+    // Add auth header if token exists
     if (token) {
-      config.headers = config.headers || {};
-      // Ensure we don't override existing headers
-      if (!config.headers['Authorization']) {
-        config.headers.Authorization = `Bearer ${token}`;
-        console.log('Added Authorization header to request');
-      }
+      requestConfig.headers = {
+        ...requestConfig.headers,
+        'Authorization': `Bearer ${token}`,
+      };
     } else {
-      console.warn('No token found in request interceptor');
+      console.warn('No authentication token found for request:', config.url);
     }
-    return config;
+    
+    console.log(`[API Request] ${config.method?.toUpperCase() || 'GET'} ${config.url}`, {
+      params: config.params,
+      headers: requestConfig.headers,
+    });
+    
+    return requestConfig;
   },
-  (error) => {
-    console.error('Request Interceptor Error:', error);
+  (error: any) => {
+    console.error('[API Request Error]', error);
+    return Promise.reject(error);
+  }
+);
+
+// Add a response interceptor for better error handling
+api.interceptors.response.use(
+  (response: any) => {
+    console.log(`[API Response] ${response.config?.method?.toUpperCase() || 'GET'} ${response.config?.url}`, {
+      status: response.status,
+      data: response.data,
+    });
+    return response;
+  },
+  (error: any) => {
+    if (error.response) {
+      // The request was made and the server responded with a status code
+      // that falls out of the range of 2xx
+      console.error('[API Response Error]', {
+        url: error.config?.url,
+        status: error.response.status,
+        data: error.response.data,
+        headers: error.config?.headers,
+      });
+      
+      // Handle 401 Unauthorized
+      if (error.response.status === 401) {
+        console.warn('Authentication required, redirecting to login');
+        // You might want to redirect to login here
+        // window.location.href = '/login';
+      }
+    } else if (error.request) {
+      // The request was made but no response was received
+      console.error('[API Request Error] No response received:', error.request);
+    } else {
+      // Something happened in setting up the request that triggered an Error
+      console.error('[API Error]', error.message);
+    }
+    
     return Promise.reject(error);
   }
 );

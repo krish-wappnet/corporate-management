@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAppSelector } from '../../store/store';
 import { cn } from '../../lib/utils';
-import { LayoutDashboard, Users, Briefcase, ClipboardList, FileText, Settings, ChevronDown, Target, BarChart2, Tag, Target as OkrIcon, BarChart as AnalyticsIcon } from 'lucide-react';
+import { LayoutDashboard, Users, Briefcase, ClipboardList, FileText, Settings, ChevronDown, Target, BarChart2, Tag, Target as OkrIcon, BarChart as AnalyticsIcon, MessageSquare, Calendar, Inbox, MessageCircle } from 'lucide-react';
 import type { NavItem, SidebarNavProps } from '../../types/navigation';
 
 // Define navigation items
@@ -93,6 +93,7 @@ const navItems: NavItem[] = [
       }
     ]
   },
+
   {
     title: 'KPIs',
     path: '/kpis',
@@ -146,6 +147,38 @@ const navItems: NavItem[] = [
     roles: ['admin', 'manager']
   },
   {
+    title: 'Feedback',
+    path: '/feedback',
+    icon: MessageSquare,
+    roles: ['admin', 'manager', 'employee'],
+    children: [
+      {
+        title: 'My Feedback',
+        path: '/feedback',
+        icon: MessageSquare,
+        roles: ['admin', 'manager', 'employee']
+      },
+      {
+        title: 'Feedback Requests',
+        path: '/feedback/requests',
+        icon: Inbox,
+        roles: ['employee']
+      },
+      {
+        title: 'Feedback Cycles',
+        path: '/feedback/cycles',
+        icon: Calendar,
+        roles: ['admin', 'manager']
+      },
+      {
+        title: 'All Requests',
+        path: '/admin/feedback/requests',
+        icon: MessageCircle,
+        roles: ['admin']
+      }
+    ]
+  },
+  {
     title: 'Settings',
     path: '/settings',
     icon: Settings,
@@ -186,9 +219,10 @@ const Sidebar: React.FC<SidebarNavProps> = ({ isOpen, onClose }) => {
     }));
   };
 
-  // Filter navigation items based on user role
+  // Filter top-level navigation items based on user role
   const filteredNavItems = navItems.filter(item => {
     if (!item.roles) return true;
+    // Only show if user has at least one of the required roles
     return item.roles.some(role => user?.roles?.includes(role));
   });
 
@@ -204,12 +238,25 @@ const Sidebar: React.FC<SidebarNavProps> = ({ isOpen, onClose }) => {
     return children.some(child => isActive(child.path, true));
   };
 
+  // Filter navigation items based on user role
+  const filterItemsByRole = (items: NavItem[]) => {
+    return items.filter(item => {
+      if (!item.roles) return true;
+      return item.roles.some(role => user?.roles?.includes(role));
+    });
+  };
+
   // Render navigation items
   const renderNavItems = (items: NavItem[], level: number = 0) => {
-    return items.map((item) => {
-      const hasChildren = item.children && item.children.length > 0;
+    // Filter items based on user role
+    const filteredItems = filterItemsByRole(items);
+    
+    return filteredItems.map((item) => {
+      // Filter children based on user role
+      const filteredChildren = item.children ? filterItemsByRole(item.children) : [];
+      const hasChildren = filteredChildren.length > 0;
       const isItemActive = isActive(item.path, !hasChildren);
-      const isChildActive = hasChildren && hasActiveChild(item.children);
+      const isChildActive = hasChildren && hasActiveChild(filteredChildren);
       const isOpen = openItems[item.path] || isChildActive;
 
       return (
@@ -261,7 +308,7 @@ const Sidebar: React.FC<SidebarNavProps> = ({ isOpen, onClose }) => {
               )}
             >
               <div className="py-1 pl-4">
-                {renderNavItems(item.children || [], level + 1)}
+                {renderNavItems(filteredChildren, level + 1)}
               </div>
             </div>
           )}

@@ -13,6 +13,8 @@ import { PaginationResponseDto } from '../common/dtos/pagination-response.dto';
 export declare class FeedbackController {
     private readonly feedbackService;
     constructor(feedbackService: FeedbackService);
+    findAllRequests(req: any, paginationDto: PaginationDto, requesterId?: string, recipientId?: string, subjectId?: string, status?: RequestStatus, cycleId?: string): Promise<PaginationResponseDto<FeedbackRequest>>;
+    createRequest(req: any, createRequestDto: CreateFeedbackRequestDto): Promise<FeedbackRequest>;
     createFeedback(req: any, createFeedbackDto: CreateFeedbackDto): Promise<Feedback>;
     findAllFeedback(paginationDto: PaginationDto, fromUserId?: string, toUserId?: string, type?: FeedbackType, status?: FeedbackStatus, cycleId?: string): Promise<PaginationResponseDto<Feedback>>;
     findOneFeedback(req: any, id: string): Promise<Feedback>;
@@ -23,8 +25,6 @@ export declare class FeedbackController {
     findOneCycle(id: string): Promise<FeedbackCycle>;
     updateCycle(id: string, updateCycleDto: UpdateFeedbackCycleDto): Promise<FeedbackCycle>;
     removeCycle(id: string): Promise<void>;
-    createRequest(req: any, createRequestDto: CreateFeedbackRequestDto): Promise<FeedbackRequest>;
-    findAllRequests(paginationDto: PaginationDto, requesterId?: string, recipientId?: string, subjectId?: string, status?: RequestStatus, cycleId?: string): Promise<PaginationResponseDto<FeedbackRequest>>;
     findOneRequest(id: string): Promise<FeedbackRequest>;
     updateRequest(req: any, id: string, updateRequestDto: UpdateFeedbackRequestDto): Promise<FeedbackRequest>;
     respondToRequest(req: any, id: string, accept: boolean): Promise<FeedbackRequest>;

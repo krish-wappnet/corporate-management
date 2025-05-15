@@ -104,7 +104,6 @@ export class UsersService {
 
   async findAll(
     paginationDto: PaginationDto = { page: 1, limit: 10 },
-    search?: string,
     department?: string,
   ): Promise<PaginationResponseDto<User>> {
     try {
@@ -113,10 +112,6 @@ export class UsersService {
       
       const where: FindOptionsWhere<User> = {};
       
-      if (search) {
-        where.firstName = ILike(`%${search}%`);
-      }
-
       if (department) {
         where.department = department;
       }
@@ -355,6 +350,46 @@ export class UsersService {
     } catch (error) {
       this.logger.error(`Error fetching departments: ${error.message}`, error.stack);
       throw new InternalServerErrorException('Error fetching departments');
+    }
+  }
+
+  /**
+   * Find all users with manager role
+   * @returns Promise with list of managers
+   */
+  async findManagers(search?: string): Promise<User[]> {
+    try {
+      const query = this.usersRepository
+        .createQueryBuilder('user')
+        .where('user.roles @> :role', { role: [Role.MANAGER] })
+        .select([
+          'user.id',
+          'user.firstName',
+          'user.lastName',
+          'user.email',
+          'user.position',
+          'user.roles',
+          'user.department',
+          'user.jobTitle',
+          'user.phoneNumber',
+          'user.hireDate',
+          'user.isActive'
+        ])
+        .orderBy('user.firstName', 'ASC');
+      
+      // Add search conditions if search term is provided
+      if (search && search.trim() !== '') {
+        const searchTerm = `%${search.toLowerCase()}%`;
+        query.andWhere(
+          '(LOWER(user.firstName) LIKE :search OR LOWER(user.lastName) LIKE :search OR LOWER(user.email) LIKE :search)',
+          { search: searchTerm }
+        );
+      }
+
+      return await query.getMany();
+    } catch (error) {
+      this.logger.error(`Error finding managers: ${error.message}`, error.stack);
+      throw new InternalServerErrorException('Failed to fetch managers');
     }
   }
 }

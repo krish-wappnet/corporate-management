@@ -31,11 +31,14 @@ let UsersController = class UsersController {
     create(createUserDto) {
         return this.usersService.create(createUserDto);
     }
-    findAll(paginationDto, search, department) {
-        return this.usersService.findAll(paginationDto, search, department);
+    findAll(paginationDto, department) {
+        return this.usersService.findAll(paginationDto, department);
     }
-    getDepartments() {
+    async getDepartments() {
         return this.usersService.getDepartments();
+    }
+    async getManagers(search) {
+        return this.usersService.findManagers(search);
     }
     findOne(id) {
         return this.usersService.findOne(id);
@@ -71,26 +74,37 @@ __decorate([
 ], UsersController.prototype, "create", null);
 __decorate([
     (0, common_1.Get)(),
-    (0, roles_decorator_1.Roles)(role_enum_1.Role.ADMIN, role_enum_1.Role.MANAGER),
+    (0, roles_decorator_1.Roles)(role_enum_1.Role.ADMIN, role_enum_1.Role.MANAGER, role_enum_1.Role.EMPLOYEE),
     (0, swagger_1.ApiOperation)({ summary: 'Get all users with pagination' }),
     (0, swagger_1.ApiResponse)({ status: 200, description: 'List of users retrieved successfully' }),
-    (0, swagger_1.ApiQuery)({ name: 'search', required: false }),
     (0, swagger_1.ApiQuery)({ name: 'department', required: false }),
     __param(0, (0, common_1.Query)()),
-    __param(1, (0, common_1.Query)('search')),
-    __param(2, (0, common_1.Query)('department')),
+    __param(1, (0, common_1.Query)('department')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [pagination_dto_1.PaginationDto, String, String]),
+    __metadata("design:paramtypes", [pagination_dto_1.PaginationDto, String]),
     __metadata("design:returntype", Promise)
 ], UsersController.prototype, "findAll", null);
 __decorate([
     (0, common_1.Get)('departments'),
-    (0, swagger_1.ApiOperation)({ summary: 'Get all departments' }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'List of departments retrieved successfully' }),
+    (0, roles_decorator_1.Roles)(role_enum_1.Role.ADMIN, role_enum_1.Role.MANAGER, role_enum_1.Role.EMPLOYEE),
+    (0, swagger_1.ApiOperation)({ summary: 'Get all unique department names' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'List of department names' }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], UsersController.prototype, "getDepartments", null);
+__decorate([
+    (0, common_1.Get)('managers'),
+    (0, roles_decorator_1.Roles)(role_enum_1.Role.ADMIN, role_enum_1.Role.MANAGER, role_enum_1.Role.EMPLOYEE),
+    (0, swagger_1.ApiOperation)({ summary: 'Get all users with manager role' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'List of managers retrieved successfully', type: [user_entity_1.User] }),
+    (0, swagger_1.ApiResponse)({ status: 500, description: 'Failed to fetch managers' }),
+    (0, swagger_1.ApiQuery)({ name: 'search', required: false }),
+    __param(0, (0, common_1.Query)('search')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "getManagers", null);
 __decorate([
     (0, common_1.Get)(':id'),
     (0, swagger_1.ApiOperation)({ summary: 'Get a user by ID' }),

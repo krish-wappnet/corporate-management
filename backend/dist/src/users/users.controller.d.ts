@@ -8,8 +8,9 @@ export declare class UsersController {
     private readonly usersService;
     constructor(usersService: UsersService);
     create(createUserDto: CreateUserDto): Promise<User>;
-    findAll(paginationDto: PaginationDto, search?: string, department?: string): Promise<PaginationResponseDto<User>>;
+    findAll(paginationDto: PaginationDto, department?: string): Promise<PaginationResponseDto<User>>;
     getDepartments(): Promise<string[]>;
+    getManagers(search?: string): Promise<User[]>;
     findOne(id: string): Promise<User>;
     update(id: string, updateUserDto: UpdateUserDto): Promise<User>;
     remove(id: string): Promise<void>;

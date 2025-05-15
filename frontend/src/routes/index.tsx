@@ -16,6 +16,16 @@ import OkrDetailPage from '../pages/okrs/OkrDetailPage';
 import OkrAnalyticsPage from '../pages/okrs/OkrAnalyticsPage';
 import NotFound from '../pages/NotFound';
 
+// Feedback Components
+import FeedbackList from '../pages/feedback/FeedbackList';
+import FeedbackForm from '../pages/feedback/FeedbackForm';
+import FeedbackDetail from '../pages/feedback/FeedbackDetail';
+import FeedbackCycles from '../pages/feedback/FeedbackCycles';
+import FeedbackCycleForm from '../pages/feedback/FeedbackCycleForm';
+import FeedbackRequests from '../pages/feedback/FeedbackRequests';
+import FeedbackRequestForm from '../pages/feedback/FeedbackRequestForm';
+import FeedbackRequestsAdmin from '../pages/feedback/FeedbackRequestsAdmin';
+
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
@@ -277,8 +287,153 @@ const AppRoutes: React.FC = () => {
         }
       />
       
+      {/* Feedback Management */}
+      <Route
+        path="/feedback"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <FeedbackList />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/feedback/new"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <FeedbackForm />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/feedback/:id"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <FeedbackDetail />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/feedback/:id/edit"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <FeedbackForm />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Feedback Cycles */}
+      <Route
+        path="/feedback/cycles"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <FeedbackCycles />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/feedback/cycles/new"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <FeedbackCycleForm />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/feedback/cycles/:id"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <FeedbackCycleForm />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/feedback/cycles/:id/edit"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <FeedbackCycleForm />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Feedback Requests */}
+      <Route
+        path="/feedback/requests"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <FeedbackRequests />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/feedback/requests/new"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <FeedbackRequestForm />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/feedback/requests/:id"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <FeedbackRequestForm />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/feedback/requests"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <FeedbackRequestsAdmin />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/feedback/requests/:id/edit"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <FeedbackRequestForm />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      
       {/* 404 Route */}
-      <Route path="*" element={<NotFound />} />
+      <Route 
+        path="*" 
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <NotFound />
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
     </Routes>
   );
 };

@@ -41,6 +41,45 @@ import { PaginationResponseDto } from '../common/dtos/pagination-response.dto';
 export class FeedbackController {
   constructor(private readonly feedbackService: FeedbackService) {}
 
+  // Feedback Request Endpoints (needs to be before :id to avoid route conflict)
+  @Get('requests')
+  @ApiOperation({ summary: 'Get all feedback requests' })
+  @ApiResponse({ status: 200, description: 'List of feedback requests', type: PaginationResponseDto })
+  @ApiQuery({ name: 'requesterId', required: false })
+  @ApiQuery({ name: 'recipientId', required: false })
+  @ApiQuery({ name: 'subjectId', required: false })
+  @ApiQuery({ name: 'status', required: false, enum: RequestStatus })
+  @ApiQuery({ name: 'cycleId', required: false })
+  async findAllRequests(
+    @Request() req,
+    @Query() paginationDto: PaginationDto,
+    @Query('requesterId') requesterId?: string,
+    @Query('recipientId') recipientId?: string,
+    @Query('subjectId') subjectId?: string,
+    @Query('status') status?: RequestStatus,
+    @Query('cycleId') cycleId?: string,
+  ): Promise<PaginationResponseDto<FeedbackRequest>> {
+    const filters = {
+      requesterId,
+      recipientId,
+      subjectId,
+      status,
+      cycleId,
+    };
+
+    return this.feedbackService.getFeedbackRequests(req.user.userId, paginationDto, filters);
+  }
+
+  @Post('requests')
+  @ApiOperation({ summary: 'Create a new feedback request' })
+  @ApiResponse({ status: 201, description: 'Feedback request created successfully', type: FeedbackRequest })
+  createRequest(
+    @Request() req,
+    @Body() createRequestDto: CreateFeedbackRequestDto,
+  ): Promise<FeedbackRequest> {
+    return this.feedbackService.createRequest(req.user.userId, createRequestDto);
+  }
+
   // Feedback Endpoints
   @Post()
   @ApiOperation({ summary: 'Create new feedback' })
@@ -170,44 +209,6 @@ export class FeedbackController {
   @ApiResponse({ status: 404, description: 'Feedback cycle not found' })
   removeCycle(@Param('id') id: string): Promise<void> {
     return this.feedbackService.deleteCycle(id);
-  }
-
-  // Feedback Request Endpoints
-  @Post('requests')
-  @ApiOperation({ summary: 'Create a new feedback request' })
-  @ApiResponse({ status: 201, description: 'Feedback request created successfully', type: FeedbackRequest })
-  createRequest(
-    @Request() req,
-    @Body() createRequestDto: CreateFeedbackRequestDto,
-  ): Promise<FeedbackRequest> {
-    return this.feedbackService.createRequest(req.user.userId, createRequestDto);
-  }
-
-  @Get('requests')
-  @ApiOperation({ summary: 'Get all feedback requests' })
-  @ApiResponse({ status: 200, description: 'List of feedback requests', type: PaginationResponseDto })
-  @ApiQuery({ name: 'requesterId', required: false })
-  @ApiQuery({ name: 'recipientId', required: false })
-  @ApiQuery({ name: 'subjectId', required: false })
-  @ApiQuery({ name: 'status', required: false, enum: RequestStatus })
-  @ApiQuery({ name: 'cycleId', required: false })
-  async findAllRequests(
-    @Query() paginationDto: PaginationDto,
-    @Query('requesterId') requesterId?: string,
-    @Query('recipientId') recipientId?: string,
-    @Query('subjectId') subjectId?: string,
-    @Query('status') status?: RequestStatus,
-    @Query('cycleId') cycleId?: string,
-  ): Promise<PaginationResponseDto<FeedbackRequest>> {
-    const filters = {
-      requesterId,
-      recipientId,
-      subjectId,
-      status,
-      cycleId,
-    };
-
-    return this.feedbackService.getFeedbackRequests('', paginationDto, filters);
   }
 
   @Get('requests/:id')

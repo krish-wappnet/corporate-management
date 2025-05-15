@@ -111,14 +111,11 @@ let UsersService = UsersService_1 = class UsersService {
             throw new common_1.InternalServerErrorException('Error creating user');
         }
     }
-    async findAll(paginationDto = { page: 1, limit: 10 }, search, department) {
+    async findAll(paginationDto = { page: 1, limit: 10 }, department) {
         try {
             const page = paginationDto.page ?? 1;
             const limit = paginationDto.limit ?? 10;
             const where = {};
-            if (search) {
-                where.firstName = (0, typeorm_2.ILike)(`%${search}%`);
-            }
             if (department) {
                 where.department = department;
             }
@@ -306,6 +303,36 @@ let UsersService = UsersService_1 = class UsersService {
         catch (error) {
             this.logger.error(`Error fetching departments: ${error.message}`, error.stack);
             throw new common_1.InternalServerErrorException('Error fetching departments');
+        }
+    }
+    async findManagers(search) {
+        try {
+            const query = this.usersRepository
+                .createQueryBuilder('user')
+                .where('user.roles @> :role', { role: [role_enum_1.Role.MANAGER] })
+                .select([
+                'user.id',
+                'user.firstName',
+                'user.lastName',
+                'user.email',
+                'user.position',
+                'user.roles',
+                'user.department',
+                'user.jobTitle',
+                'user.phoneNumber',
+                'user.hireDate',
+                'user.isActive'
+            ])
+                .orderBy('user.firstName', 'ASC');
+            if (search && search.trim() !== '') {
+                const searchTerm = `%${search.toLowerCase()}%`;
+                query.andWhere('(LOWER(user.firstName) LIKE :search OR LOWER(user.lastName) LIKE :search OR LOWER(user.email) LIKE :search)', { search: searchTerm });
+            }
+            return await query.getMany();
+        }
+        catch (error) {
+            this.logger.error(`Error finding managers: ${error.message}`, error.stack);
+            throw new common_1.InternalServerErrorException('Failed to fetch managers');
         }
     }
 };

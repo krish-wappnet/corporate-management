@@ -35,6 +35,19 @@ let FeedbackController = class FeedbackController {
     constructor(feedbackService) {
         this.feedbackService = feedbackService;
     }
+    async findAllRequests(req, paginationDto, requesterId, recipientId, subjectId, status, cycleId) {
+        const filters = {
+            requesterId,
+            recipientId,
+            subjectId,
+            status,
+            cycleId,
+        };
+        return this.feedbackService.getFeedbackRequests(req.user.userId, paginationDto, filters);
+    }
+    createRequest(req, createRequestDto) {
+        return this.feedbackService.createRequest(req.user.userId, createRequestDto);
+    }
     createFeedback(req, createFeedbackDto) {
         return this.feedbackService.createFeedback(req.user.userId, createFeedbackDto);
     }
@@ -77,19 +90,6 @@ let FeedbackController = class FeedbackController {
     removeCycle(id) {
         return this.feedbackService.deleteCycle(id);
     }
-    createRequest(req, createRequestDto) {
-        return this.feedbackService.createRequest(req.user.userId, createRequestDto);
-    }
-    async findAllRequests(paginationDto, requesterId, recipientId, subjectId, status, cycleId) {
-        const filters = {
-            requesterId,
-            recipientId,
-            subjectId,
-            status,
-            cycleId,
-        };
-        return this.feedbackService.getFeedbackRequests('', paginationDto, filters);
-    }
     findOneRequest(id) {
         return this.feedbackService.findRequestById(id);
     }
@@ -116,6 +116,36 @@ let FeedbackController = class FeedbackController {
     }
 };
 exports.FeedbackController = FeedbackController;
+__decorate([
+    (0, common_1.Get)('requests'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get all feedback requests' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'List of feedback requests', type: pagination_response_dto_1.PaginationResponseDto }),
+    (0, swagger_1.ApiQuery)({ name: 'requesterId', required: false }),
+    (0, swagger_1.ApiQuery)({ name: 'recipientId', required: false }),
+    (0, swagger_1.ApiQuery)({ name: 'subjectId', required: false }),
+    (0, swagger_1.ApiQuery)({ name: 'status', required: false, enum: feedback_request_entity_1.RequestStatus }),
+    (0, swagger_1.ApiQuery)({ name: 'cycleId', required: false }),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Query)()),
+    __param(2, (0, common_1.Query)('requesterId')),
+    __param(3, (0, common_1.Query)('recipientId')),
+    __param(4, (0, common_1.Query)('subjectId')),
+    __param(5, (0, common_1.Query)('status')),
+    __param(6, (0, common_1.Query)('cycleId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, pagination_dto_1.PaginationDto, String, String, String, String, String]),
+    __metadata("design:returntype", Promise)
+], FeedbackController.prototype, "findAllRequests", null);
+__decorate([
+    (0, common_1.Post)('requests'),
+    (0, swagger_1.ApiOperation)({ summary: 'Create a new feedback request' }),
+    (0, swagger_1.ApiResponse)({ status: 201, description: 'Feedback request created successfully', type: feedback_request_entity_1.FeedbackRequest }),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, create_feedback_request_dto_1.CreateFeedbackRequestDto]),
+    __metadata("design:returntype", Promise)
+], FeedbackController.prototype, "createRequest", null);
 __decorate([
     (0, common_1.Post)(),
     (0, swagger_1.ApiOperation)({ summary: 'Create new feedback' }),
@@ -240,35 +270,6 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], FeedbackController.prototype, "removeCycle", null);
-__decorate([
-    (0, common_1.Post)('requests'),
-    (0, swagger_1.ApiOperation)({ summary: 'Create a new feedback request' }),
-    (0, swagger_1.ApiResponse)({ status: 201, description: 'Feedback request created successfully', type: feedback_request_entity_1.FeedbackRequest }),
-    __param(0, (0, common_1.Request)()),
-    __param(1, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, create_feedback_request_dto_1.CreateFeedbackRequestDto]),
-    __metadata("design:returntype", Promise)
-], FeedbackController.prototype, "createRequest", null);
-__decorate([
-    (0, common_1.Get)('requests'),
-    (0, swagger_1.ApiOperation)({ summary: 'Get all feedback requests' }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'List of feedback requests', type: pagination_response_dto_1.PaginationResponseDto }),
-    (0, swagger_1.ApiQuery)({ name: 'requesterId', required: false }),
-    (0, swagger_1.ApiQuery)({ name: 'recipientId', required: false }),
-    (0, swagger_1.ApiQuery)({ name: 'subjectId', required: false }),
-    (0, swagger_1.ApiQuery)({ name: 'status', required: false, enum: feedback_request_entity_1.RequestStatus }),
-    (0, swagger_1.ApiQuery)({ name: 'cycleId', required: false }),
-    __param(0, (0, common_1.Query)()),
-    __param(1, (0, common_1.Query)('requesterId')),
-    __param(2, (0, common_1.Query)('recipientId')),
-    __param(3, (0, common_1.Query)('subjectId')),
-    __param(4, (0, common_1.Query)('status')),
-    __param(5, (0, common_1.Query)('cycleId')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [pagination_dto_1.PaginationDto, String, String, String, String, String]),
-    __metadata("design:returntype", Promise)
-], FeedbackController.prototype, "findAllRequests", null);
 __decorate([
     (0, common_1.Get)('requests/:id'),
     (0, swagger_1.ApiOperation)({ summary: 'Get a feedback request by ID' }),

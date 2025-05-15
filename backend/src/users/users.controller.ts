@@ -45,24 +45,33 @@ export class UsersController {
   }
 
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @Roles(Role.ADMIN, Role.MANAGER, Role.EMPLOYEE)
   @ApiOperation({ summary: 'Get all users with pagination' })
   @ApiResponse({ status: 200, description: 'List of users retrieved successfully' })
-  @ApiQuery({ name: 'search', required: false })
   @ApiQuery({ name: 'department', required: false })
   findAll(
     @Query() paginationDto: PaginationDto,
-    @Query('search') search?: string,
     @Query('department') department?: string,
   ): Promise<PaginationResponseDto<User>> {
-    return this.usersService.findAll(paginationDto, search, department);
+    return this.usersService.findAll(paginationDto, department);
   }
 
   @Get('departments')
-  @ApiOperation({ summary: 'Get all departments' })
-  @ApiResponse({ status: 200, description: 'List of departments retrieved successfully' })
-  getDepartments(): Promise<string[]> {
+  @Roles(Role.ADMIN, Role.MANAGER, Role.EMPLOYEE)
+  @ApiOperation({ summary: 'Get all unique department names' })
+  @ApiResponse({ status: 200, description: 'List of department names' })
+  async getDepartments(): Promise<string[]> {
     return this.usersService.getDepartments();
+  }
+
+  @Get('managers')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.EMPLOYEE)
+  @ApiOperation({ summary: 'Get all users with manager role' })
+  @ApiResponse({ status: 200, description: 'List of managers retrieved successfully', type: [User] })
+  @ApiResponse({ status: 500, description: 'Failed to fetch managers' })
+  @ApiQuery({ name: 'search', required: false })
+  async getManagers(@Query('search') search?: string): Promise<User[]> {
+    return this.usersService.findManagers(search);
   }
 
   @Get(':id')
