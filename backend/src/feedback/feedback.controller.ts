@@ -42,6 +42,28 @@ export class FeedbackController {
   constructor(private readonly feedbackService: FeedbackService) {}
 
   // Feedback Request Endpoints (needs to be before :id to avoid route conflict)
+  // Feedback Cycle Endpoints (must come before :id routes)
+  @Get('cycles')
+  @ApiOperation({ summary: 'Get all feedback cycles' })
+  @ApiResponse({ status: 200, description: 'List of feedback cycles', type: PaginationResponseDto })
+  @ApiQuery({ name: 'status', required: false, enum: CycleStatus })
+  @ApiQuery({ name: 'type', required: false })
+  @ApiQuery({ name: 'active', required: false, type: Boolean })
+  async findAllCycles(
+    @Query() paginationDto: PaginationDto,
+    @Query('status') status?: CycleStatus,
+    @Query('type') type?: string,
+    @Query('active') active?: boolean | string,
+  ): Promise<PaginationResponseDto<FeedbackCycle>> {
+    const filters = {
+      status,
+      type,
+      active: active === 'true' || active === true,
+    };
+
+    return this.feedbackService.getFeedbackCycles(paginationDto, filters);
+  }
+
   @Get('requests')
   @ApiOperation({ summary: 'Get all feedback requests' })
   @ApiResponse({ status: 200, description: 'List of feedback requests', type: PaginationResponseDto })
@@ -67,7 +89,10 @@ export class FeedbackController {
       cycleId,
     };
 
-    return this.feedbackService.getFeedbackRequests(req.user.userId, paginationDto, filters);
+    if (!req.user?.id) {
+      throw new Error('Authentication required');
+    }
+    return this.feedbackService.getFeedbackRequests(req.user.id, paginationDto, filters);
   }
 
   @Post('requests')
@@ -77,7 +102,10 @@ export class FeedbackController {
     @Request() req,
     @Body() createRequestDto: CreateFeedbackRequestDto,
   ): Promise<FeedbackRequest> {
-    return this.feedbackService.createRequest(req.user.userId, createRequestDto);
+    if (!req.user?.id) {
+      throw new Error('Authentication required');
+    }
+    return this.feedbackService.createRequest(req.user.id, createRequestDto);
   }
 
   // Feedback Endpoints
@@ -88,7 +116,12 @@ export class FeedbackController {
     @Request() req,
     @Body() createFeedbackDto: CreateFeedbackDto,
   ): Promise<Feedback> {
-    return this.feedbackService.createFeedback(req.user.userId, createFeedbackDto);
+    console.log('Request user:', req.user); // Debug log
+    if (!req.user?.id) {
+      console.error('No user ID found in request');
+      throw new Error('Authentication required');
+    }
+    return this.feedbackService.createFeedback(req.user.id, createFeedbackDto);
   }
 
   @Get()
@@ -126,7 +159,10 @@ export class FeedbackController {
     @Request() req,
     @Param('id') id: string,
   ): Promise<Feedback> {
-    return this.feedbackService.findFeedbackById(id, req.user.userId);
+    if (!req.user?.id) {
+      throw new Error('Authentication required');
+    }
+    return this.feedbackService.findFeedbackById(id, req.user.id);
   }
 
   @Patch(':id')
@@ -139,7 +175,10 @@ export class FeedbackController {
     @Param('id') id: string,
     @Body() updateFeedbackDto: UpdateFeedbackDto,
   ): Promise<Feedback> {
-    return this.feedbackService.updateFeedback(id, req.user.userId, updateFeedbackDto);
+    if (!req.user?.id) {
+      throw new Error('Authentication required');
+    }
+    return this.feedbackService.updateFeedback(id, req.user.id, updateFeedbackDto);
   }
 
   @Delete(':id')
@@ -148,37 +187,18 @@ export class FeedbackController {
   @ApiResponse({ status: 403, description: 'Not authorized' })
   @ApiResponse({ status: 404, description: 'Feedback not found' })
   removeFeedback(@Request() req, @Param('id') id: string): Promise<void> {
-    return this.feedbackService.deleteFeedback(id, req.user.userId);
+    if (!req.user?.id) {
+      throw new Error('Authentication required');
+    }
+    return this.feedbackService.deleteFeedback(id, req.user.id);
   }
 
-  // Feedback Cycle Endpoints
   @Post('cycles')
   @Roles(Role.ADMIN, Role.MANAGER)
   @ApiOperation({ summary: 'Create a new feedback cycle' })
   @ApiResponse({ status: 201, description: 'Feedback cycle created successfully', type: FeedbackCycle })
   createCycle(@Body() createCycleDto: CreateFeedbackCycleDto): Promise<FeedbackCycle> {
     return this.feedbackService.createCycle(createCycleDto);
-  }
-
-  @Get('cycles')
-  @ApiOperation({ summary: 'Get all feedback cycles' })
-  @ApiResponse({ status: 200, description: 'List of feedback cycles', type: PaginationResponseDto })
-  @ApiQuery({ name: 'status', required: false, enum: CycleStatus })
-  @ApiQuery({ name: 'type', required: false })
-  @ApiQuery({ name: 'active', required: false, type: Boolean })
-  async findAllCycles(
-    @Query() paginationDto: PaginationDto,
-    @Query('status') status?: CycleStatus,
-    @Query('type') type?: string,
-    @Query('active') active?: boolean | string,
-  ): Promise<PaginationResponseDto<FeedbackCycle>> {
-    const filters = {
-      status,
-      type,
-      active: active === 'true' || active === true,
-    };
-
-    return this.feedbackService.getFeedbackCycles(paginationDto, filters);
   }
 
   @Get('cycles/:id')
@@ -229,7 +249,10 @@ export class FeedbackController {
     @Param('id') id: string,
     @Body() updateRequestDto: UpdateFeedbackRequestDto,
   ): Promise<FeedbackRequest> {
-    return this.feedbackService.updateRequest(id, req.user.userId, updateRequestDto);
+    if (!req.user?.id) {
+      throw new Error('Authentication required');
+    }
+    return this.feedbackService.updateRequest(id, req.user.id, updateRequestDto);
   }
 
   @Post('requests/:id/respond')
@@ -243,7 +266,10 @@ export class FeedbackController {
     @Param('id') id: string,
     @Query('accept') accept: boolean,
   ): Promise<FeedbackRequest> {
-    return this.feedbackService.respondToRequest(id, req.user.userId, accept);
+    if (!req.user?.id) {
+      throw new Error('Authentication required');
+    }
+    return this.feedbackService.respondToRequest(id, req.user.id, accept);
   }
 
   @Delete('requests/:id')
@@ -252,7 +278,10 @@ export class FeedbackController {
   @ApiResponse({ status: 403, description: 'Not authorized' })
   @ApiResponse({ status: 404, description: 'Feedback request not found' })
   removeRequest(@Request() req, @Param('id') id: string): Promise<void> {
-    return this.feedbackService.deleteRequest(id, req.user.userId);
+    if (!req.user?.id) {
+      throw new Error('Authentication required');
+    }
+    return this.feedbackService.deleteRequest(id, req.user.id);
   }
 
   // 360 Feedback Endpoints

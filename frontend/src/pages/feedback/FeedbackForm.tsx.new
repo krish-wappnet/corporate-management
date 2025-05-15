@@ -20,7 +20,7 @@ import {
 } from '@ant-design/icons';
 import { useSnackbar } from 'notistack';
 import { useAuth } from '../../hooks/useAuth';
-import { FeedbackType, FeedbackStatus } from '../../types/feedback.types';
+import { FeedbackType } from '../../types/feedback.types';
 import type { FeedbackRequest } from '../../types/feedback.types';
 
 const { TextArea } = Input;
@@ -38,7 +38,7 @@ interface FeedbackFormData {
   };
   strengths: string;
   improvements: string;
-  status: FeedbackStatus;
+  status: 'draft' | 'submitted';
   cycleId?: string;
   requestId?: string;
   isAnonymous: boolean;
@@ -92,7 +92,7 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({
     strengths: '',
     improvements: '',
     isAnonymous: false,
-    status: FeedbackStatus.DRAFT,
+    status: 'draft',
     cycleId: '',
     requestId: requestId || undefined,
   };
@@ -188,7 +188,7 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({
         },
         strengths: values.strengths || '',
         improvements: values.improvements || '',
-        status: FeedbackStatus.SUBMITTED,
+        status: 'submitted',
         isAnonymous: values.isAnonymous || false,
         ...(values.cycleId && { cycleId: values.cycleId }),
         ...(values.requestId && { requestId: values.requestId }),
@@ -329,8 +329,6 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({
         form.setFieldsValue({
           ...feedback,
           toUserId: feedback.recipientId,
-          // Map request status to feedback status
-          status: feedback.status === 'completed' ? FeedbackStatus.SUBMITTED : FeedbackStatus.DRAFT
         });
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';

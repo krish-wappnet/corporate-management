@@ -35,6 +35,14 @@ let FeedbackController = class FeedbackController {
     constructor(feedbackService) {
         this.feedbackService = feedbackService;
     }
+    async findAllCycles(paginationDto, status, type, active) {
+        const filters = {
+            status,
+            type,
+            active: active === 'true' || active === true,
+        };
+        return this.feedbackService.getFeedbackCycles(paginationDto, filters);
+    }
     async findAllRequests(req, paginationDto, requesterId, recipientId, subjectId, status, cycleId) {
         const filters = {
             requesterId,
@@ -43,13 +51,24 @@ let FeedbackController = class FeedbackController {
             status,
             cycleId,
         };
-        return this.feedbackService.getFeedbackRequests(req.user.userId, paginationDto, filters);
+        if (!req.user?.id) {
+            throw new Error('Authentication required');
+        }
+        return this.feedbackService.getFeedbackRequests(req.user.id, paginationDto, filters);
     }
     createRequest(req, createRequestDto) {
-        return this.feedbackService.createRequest(req.user.userId, createRequestDto);
+        if (!req.user?.id) {
+            throw new Error('Authentication required');
+        }
+        return this.feedbackService.createRequest(req.user.id, createRequestDto);
     }
     createFeedback(req, createFeedbackDto) {
-        return this.feedbackService.createFeedback(req.user.userId, createFeedbackDto);
+        console.log('Request user:', req.user);
+        if (!req.user?.id) {
+            console.error('No user ID found in request');
+            throw new Error('Authentication required');
+        }
+        return this.feedbackService.createFeedback(req.user.id, createFeedbackDto);
     }
     findAllFeedback(paginationDto, fromUserId, toUserId, type, status, cycleId) {
         const filters = {
@@ -62,24 +81,25 @@ let FeedbackController = class FeedbackController {
         return this.feedbackService.findAllFeedback(paginationDto, filters);
     }
     findOneFeedback(req, id) {
-        return this.feedbackService.findFeedbackById(id, req.user.userId);
+        if (!req.user?.id) {
+            throw new Error('Authentication required');
+        }
+        return this.feedbackService.findFeedbackById(id, req.user.id);
     }
     updateFeedback(req, id, updateFeedbackDto) {
-        return this.feedbackService.updateFeedback(id, req.user.userId, updateFeedbackDto);
+        if (!req.user?.id) {
+            throw new Error('Authentication required');
+        }
+        return this.feedbackService.updateFeedback(id, req.user.id, updateFeedbackDto);
     }
     removeFeedback(req, id) {
-        return this.feedbackService.deleteFeedback(id, req.user.userId);
+        if (!req.user?.id) {
+            throw new Error('Authentication required');
+        }
+        return this.feedbackService.deleteFeedback(id, req.user.id);
     }
     createCycle(createCycleDto) {
         return this.feedbackService.createCycle(createCycleDto);
-    }
-    async findAllCycles(paginationDto, status, type, active) {
-        const filters = {
-            status,
-            type,
-            active: active === 'true' || active === true,
-        };
-        return this.feedbackService.getFeedbackCycles(paginationDto, filters);
     }
     findOneCycle(id) {
         return this.feedbackService.findCycleById(id);
@@ -94,13 +114,22 @@ let FeedbackController = class FeedbackController {
         return this.feedbackService.findRequestById(id);
     }
     updateRequest(req, id, updateRequestDto) {
-        return this.feedbackService.updateRequest(id, req.user.userId, updateRequestDto);
+        if (!req.user?.id) {
+            throw new Error('Authentication required');
+        }
+        return this.feedbackService.updateRequest(id, req.user.id, updateRequestDto);
     }
     respondToRequest(req, id, accept) {
-        return this.feedbackService.respondToRequest(id, req.user.userId, accept);
+        if (!req.user?.id) {
+            throw new Error('Authentication required');
+        }
+        return this.feedbackService.respondToRequest(id, req.user.id, accept);
     }
     removeRequest(req, id) {
-        return this.feedbackService.deleteRequest(id, req.user.userId);
+        if (!req.user?.id) {
+            throw new Error('Authentication required');
+        }
+        return this.feedbackService.deleteRequest(id, req.user.id);
     }
     async generate360Feedback(userId, cycleId, body) {
         return this.feedbackService.generate360FeedbackRequests(cycleId, userId, body.recipientIds);
@@ -116,6 +145,21 @@ let FeedbackController = class FeedbackController {
     }
 };
 exports.FeedbackController = FeedbackController;
+__decorate([
+    (0, common_1.Get)('cycles'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get all feedback cycles' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'List of feedback cycles', type: pagination_response_dto_1.PaginationResponseDto }),
+    (0, swagger_1.ApiQuery)({ name: 'status', required: false, enum: feedback_cycle_entity_1.CycleStatus }),
+    (0, swagger_1.ApiQuery)({ name: 'type', required: false }),
+    (0, swagger_1.ApiQuery)({ name: 'active', required: false, type: Boolean }),
+    __param(0, (0, common_1.Query)()),
+    __param(1, (0, common_1.Query)('status')),
+    __param(2, (0, common_1.Query)('type')),
+    __param(3, (0, common_1.Query)('active')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [pagination_dto_1.PaginationDto, String, String, Object]),
+    __metadata("design:returntype", Promise)
+], FeedbackController.prototype, "findAllCycles", null);
 __decorate([
     (0, common_1.Get)('requests'),
     (0, swagger_1.ApiOperation)({ summary: 'Get all feedback requests' }),
@@ -221,21 +265,6 @@ __decorate([
     __metadata("design:paramtypes", [create_feedback_cycle_dto_1.CreateFeedbackCycleDto]),
     __metadata("design:returntype", Promise)
 ], FeedbackController.prototype, "createCycle", null);
-__decorate([
-    (0, common_1.Get)('cycles'),
-    (0, swagger_1.ApiOperation)({ summary: 'Get all feedback cycles' }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'List of feedback cycles', type: pagination_response_dto_1.PaginationResponseDto }),
-    (0, swagger_1.ApiQuery)({ name: 'status', required: false, enum: feedback_cycle_entity_1.CycleStatus }),
-    (0, swagger_1.ApiQuery)({ name: 'type', required: false }),
-    (0, swagger_1.ApiQuery)({ name: 'active', required: false, type: Boolean }),
-    __param(0, (0, common_1.Query)()),
-    __param(1, (0, common_1.Query)('status')),
-    __param(2, (0, common_1.Query)('type')),
-    __param(3, (0, common_1.Query)('active')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [pagination_dto_1.PaginationDto, String, String, Object]),
-    __metadata("design:returntype", Promise)
-], FeedbackController.prototype, "findAllCycles", null);
 __decorate([
     (0, common_1.Get)('cycles/:id'),
     (0, swagger_1.ApiOperation)({ summary: 'Get a feedback cycle by ID' }),

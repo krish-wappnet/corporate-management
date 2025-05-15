@@ -1,154 +1,145 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { 
-  Form, 
-  Input, 
-  Button, 
-  Select, 
-  Card, 
-  Typography, 
-  Switch, 
-  DatePicker, 
-  message, 
-  Spin, 
-  Space, 
-  Row, 
-  Col,
-  Modal 
-} from 'antd';
-import { LoadingOutlined, TeamOutlined, UserSwitchOutlined } from '@ant-design/icons';
+import { Form, message, Spin, Button, Card, DatePicker, Modal, Space, Typography, Select, Input, Switch } from 'antd';
+import { LoadingOutlined, TeamOutlined, UserOutlined } from '@ant-design/icons';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import api from '../../services/api';
 import { createFeedbackRequest, updateFeedbackRequest } from '../../api/feedbackApi';
 
-// Define types
-type FeedbackType = 'peer' | 'manager' | 'self' | 'upward' | '360';
-type RequestStatus = 'pending' | 'completed' | 'declined' | 'expired';
+const { Option } = Select;
 
 interface User {
   id: string;
-  firstName: string;
-  lastName: string;
+  name: string;
   email: string;
-  position?: string;
-  department?: string;
-  roles?: string[];
-  createdAt?: string;
-  updatedAt?: string;
+  role: string;
+  firstName?: string;
+  lastName?: string;
+  avatar?: string;
 }
+
+type FeedbackType = 'peer' | 'manager' | 'self' | 'upward' | '360';
+type RequestStatus = 'pending' | 'in-progress' | 'completed' | 'cancelled';
+
+// Feedback type definitions
 
 interface FeedbackFormValues {
   type: FeedbackType;
   recipientId: string;
+  subjectId: string;
+  requesterId: string;
   dueDate: Dayjs;
   message: string;
-  subjectId: string; // The user who is the subject of the feedback
+  status: RequestStatus;
+  cycleId?: string;
 }
 
-const initialValues: FeedbackFormValues = {
-  type: 'peer',
-  recipientId: '',
-  dueDate: dayjs().add(7, 'day'),
-  message: '',
-  subjectId: '' // Will be set when we have the current user
-};
-
-const { Text } = Typography;
-const { TextArea } = Input;
-const { Option } = Select;
-
 const FeedbackRequestForm: React.FC = () => {
+  const { user: currentUser, loading: loadingUser } = useAuth();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [form] = Form.useForm<FeedbackFormValues>();
   
-  const [managers, setManagers] = useState<User[]>([]);
-  const [searchText, setSearchText] = useState('');
-  const [fetching, setFetching] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [formLoading, setFormLoading] = useState(false);
-  const [isSelfFeedback, setIsSelfFeedback] = useState(false);
-  const [isModalVisible, setIsModalVisible] = useState(false);
+  const initialValues: Partial<FeedbackFormValues> = {
+    type: 'peer' as const,
+    status: 'pending' as const,
+    recipientId: undefined,
+    subjectId: currentUser?.id,
+    dueDate: undefined,
+    message: '',
+    cycleId: undefined
+  };
   
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
-  // Get current user from auth context
-  const { user: currentUser, loading: loadingUser } = useAuth();
+  interface FeedbackCycle {
+    id: string;
+    name: string;
+    description: string;
+    type: string;
+    startDate: string;
+    endDate: string;
+    status: string;
+    feedbackTemplates: {
+      questions: string[];
+      ratingCategories: string[];
+    } | null;
+    createdAt: string;
+    updatedAt: string;
+  }
 
-  // Fetch all users and filter for managers
-  const fetchManagers = async (searchTerm: string = '') => {
+  const [employees, setEmployees] = useState<User[]>([]);
+  const [cycles, setCycles] = useState<FeedbackCycle[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingCycles, setIsLoadingCycles] = useState(false);
+  const [isFormLoading, setIsFormLoading] = useState(false);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+
+  const fetchEmployees = useCallback(async () => {
     try {
-      setFetching(true);
+      setIsLoading(true);
       const response = await api.get('/users', {
         params: {
           page: 1,
-          limit: 100, // Fetch more users to ensure we get all managers
-          ...(searchTerm && { search: searchTerm })
+          limit: 100
         }
       });
       
       if (response.data?.items) {
-        // Filter for users with manager role
-        const managersList = response.data.items.filter((user: User) => 
-          user.roles?.includes('manager')
-        );
-        setManagers(managersList);
+        setEmployees(response.data.items);
       }
     } catch (error) {
-      console.error('Error fetching managers:', error);
-      message.error('Failed to load managers');
+      console.error('Error fetching employees:', error);
+      message.error('Failed to load employees');
     } finally {
-      setFetching(false);
+      setIsLoading(false);
     }
-  };
+  }, []);
 
-  // Initial load
+  const fetchCycles = useCallback(async () => {
+    try {
+      setIsLoadingCycles(true);
+      const response = await api.get('/feedback/cycles', {
+        params: {
+          page: 1,
+          limit: 10
+        }
+      });
+      // Filter active cycles on the client side if needed
+      const activeCycles = response.data.items.filter((cycle: FeedbackCycle) => cycle.status === 'active');
+      response.data.items = activeCycles;
+      if (response.data?.items) {
+        setCycles(response.data.items);
+      }
+    } catch (error) {
+      console.error('Error fetching feedback cycles:', error);
+      message.error('Failed to load feedback cycles');
+    } finally {
+      setIsLoadingCycles(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (currentUser?.id) {
-      fetchManagers('');
-      // Set the subjectId when we have the current user
-      form.setFieldsValue({ subjectId: currentUser.id });
+      fetchEmployees();
+      fetchCycles();
+      form.setFieldsValue({ 
+        subjectId: currentUser.id,
+        requesterId: currentUser.id
+      });
     }
-  }, [currentUser?.id]);
+  }, [currentUser?.id, form, fetchEmployees, fetchCycles]);
 
-  // Make sure currentUser is available before rendering the form
-  if (loadingUser || !currentUser) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', padding: '24px' }}>
-        <Spin indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} />
-      </div>
-    );
+  if (!currentUser) {
+    return null;
   }
 
-  // Handle search with debounce
   useEffect(() => {
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-
-    const timer = setTimeout(() => {
-      fetchManagers(searchText.trim());
-    }, 300);
-
-    searchTimeoutRef.current = timer;
-
-    return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-        searchTimeoutRef.current = null;
-      }
-    };
-  }, [searchText]);
-
-  // Load feedback request if in edit mode
-  useEffect(() => {
-    if (!id) return;
+    if (!id || !currentUser?.id) return;
     
     const fetchRequest = async () => {
       try {
-        setFormLoading(true);
+        setIsFormLoading(true);
         const response = await api.get(`/feedback/requests/${id}`);
         const request = response.data;
         
@@ -156,70 +147,111 @@ const FeedbackRequestForm: React.FC = () => {
           ...request,
           dueDate: dayjs(request.dueDate)
         });
-        
-        // Set self feedback state if needed
-        if (request.recipientId === currentUser.id) {
-          setIsSelfFeedback(true);
-        }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Error loading feedback request';
         message.error(errorMessage);
         console.error('Error fetching feedback request:', error);
         navigate('/feedback/requests');
       } finally {
-        setFormLoading(false);
+        setIsFormLoading(false);
       }
     };
     
     fetchRequest();
-  }, [id, form, navigate, currentUser.id]);
+  }, [id, form, navigate, currentUser?.id]);
 
-  const handleSelfFeedbackChange = (checked: boolean) => {
-    if (!currentUser) return;
-    
-    setIsSelfFeedback(checked);
+  const handleSelfFeedbackChange = useCallback((checked: boolean) => {
     if (checked) {
       form.setFieldsValue({ 
-        recipientId: currentUser.id,
+        recipientId: currentUser?.id,
         type: 'self' as const
       });
     } else {
       form.setFieldsValue({ 
-        recipientId: '',
+        recipientId: undefined,
         type: 'peer' as const
       });
     }
-  };
+  }, [currentUser?.id, form]);
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     setIsModalVisible(false);
     navigate('/feedback/requests');
-  };
+  }, [navigate]);
 
-  const onFinish = async (values: FeedbackFormValues) => {
-    // This check is still good practice even though we check in the render
+  const handleModalCancel = useCallback(() => {
+    setIsModalVisible(false);
+  }, []);
+
+  const handleSubmit = useCallback(async (values: FeedbackFormValues) => {
     if (!currentUser?.id) {
       message.error('User not authenticated');
       return;
     }
 
-    // Additional client-side validation for due date
+    // Ensure subjectId is always set to the current user's ID
+    values.subjectId = currentUser.id;
+
+    // Ensure type is one of the valid values
+    const validTypes = ['peer', 'manager', 'self', 'upward', '360'] as const;
+    if (!validTypes.includes(values.type as any)) {
+      message.error('Invalid feedback type');
+      return;
+    }
+
+    // Ensure recipient is selected
+    if (!values.recipientId) {
+      message.error('Please select a recipient');
+      return;
+    }
+
+    // Client-side validation for due date
     if (values.dueDate && values.dueDate.isBefore(dayjs())) {
       message.error('Due date must be in the future');
       return;
     }
 
     try {
-      setLoading(true);
+      setIsLoading(true);
+      
+      // Prepare the request data
+      const requestData = {
+        recipientId: values.recipientId,
+        subjectId: values.subjectId, // The user the feedback is about
+        requesterId: currentUser.id,  // The user making the request
+        dueDate: values.dueDate.toISOString(),
+        message: values.message || undefined,
+        cycleId: values.cycleId,
+        type: values.type,
+        status: 'pending' as const
+      };
+
+      if (id) {
+        // Update existing request
+        await updateFeedbackRequest(id, requestData);
+        message.success('Feedback request updated successfully');
+      } else {
+        // Create new request
+        await createFeedbackRequest(requestData);
+        message.success('Feedback request created successfully');
+      }
+      
+      navigate('/feedback/requests');
+    } catch (error: any) {
+      console.error('Error submitting feedback request:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to submit feedback request';
+      message.error(Array.isArray(errorMessage) ? errorMessage.join(', ') : errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+
+    try {
+      setIsLoading(true);
       
       const requestData = {
-        type: values.type,
-        recipientId: values.recipientId,
-        subjectId: currentUser.id, // The current user is the subject of the feedback
-        requesterId: currentUser.id, // The current user is also the requester
+        ...values,
         dueDate: values.dueDate.toISOString(),
-        message: values.message,
-        status: 'pending' as RequestStatus
+        status: 'pending' as const
       };
       
       if (id) {
@@ -236,13 +268,11 @@ const FeedbackRequestForm: React.FC = () => {
       message.error(errorMessage);
       console.error('Error submitting feedback request:', error);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
-  };
+  }, [currentUser?.id, id, navigate]);
 
-
-
-  if (formLoading) {
+  if (loadingUser || isFormLoading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', padding: '24px' }}>
         <Spin indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} />
@@ -251,73 +281,108 @@ const FeedbackRequestForm: React.FC = () => {
   }
 
   return (
-    <div style={{ maxWidth: 800, margin: '0 auto', padding: '24px 16px' }}>
-      <Card 
+    <div className="feedback-request-form">
+      <Card
         title={
-          <Typography.Title level={4} style={{ margin: 0 }}>
+          <Typography.Title level={4}>
             {id ? 'Update Feedback Request' : 'New Feedback Request'}
           </Typography.Title>
         }
-        loading={formLoading}
       >
         <Form
           form={form}
           layout="vertical"
           initialValues={initialValues}
-          onFinish={onFinish}
+          onFinish={handleSubmit}
         >
-          <Row gutter={16}>
-            <Col span={24} md={12}>
-              <Form.Item
-                name="type"
-                label="Feedback Type"
-                rules={[{ required: true, message: 'Please select feedback type' }]}
-              >
-                <Select placeholder="Select feedback type">
-                  <Option value="peer">Peer Feedback</Option>
-                  <Option value="manager">Manager Feedback</Option>
-                  <Option value="self">Self Feedback</Option>
-                  <Option value="upward">Upward Feedback</Option>
-                  <Option value="360">360° Feedback</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={24} md={12}>
-              <Form.Item
-                name="isSelfFeedback"
-                label="Request Self-Feedback"
-                valuePropName="checked"
-              >
-                <Switch 
-                  checkedChildren={<UserSwitchOutlined />} 
-                  unCheckedChildren={<TeamOutlined />} 
-                  onChange={handleSelfFeedbackChange}
-                />
-              </Form.Item>
-            </Col>
-          </Row>
+          <Form.Item
+            name="type"
+            label="Feedback Type"
+            rules={[{ required: true, message: 'Please select feedback type' }]}
+          >
+            <Select placeholder="Select feedback type">
+              <Option value="peer">Peer Feedback</Option>
+              <Option value="manager">Manager Feedback</Option>
+              <Option value="self">Self Feedback</Option>
+              <Option value="upward">Upward Feedback</Option>
+              <Option value="360">360° Feedback</Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="isSelfFeedback"
+            label="Request Self-Feedback"
+            valuePropName="checked"
+          >
+            <Switch
+              checkedChildren={<UserOutlined />}
+              unCheckedChildren={<TeamOutlined />}
+              onChange={handleSelfFeedbackChange}
+            />
+          </Form.Item>
 
           <Form.Item
             name="recipientId"
-            label={isSelfFeedback ? 'Recipient (You)' : 'Select Recipient'}
-            rules={[
-              { required: true, message: 'Please select a recipient' },
-            ]}
+            label="Recipient"
+            rules={[{ required: true, message: 'Please select a recipient' }]}
           >
             <Select
-              showSearch
-              placeholder={isSelfFeedback ? 'You' : 'Search for a manager'}
+              placeholder="Select a recipient"
+              loading={isLoading}
+              style={{ width: '100%' }}
               optionFilterProp="children"
-              onSearch={setSearchText}
-              filterOption={false}
-              loading={fetching}
-              disabled={isSelfFeedback}
+              filterOption={(input, option) => 
+                String(option?.children ?? '').toLowerCase().includes(input.toLowerCase())
+              }
+              notFoundContent={isLoading ? <Spin size="small" /> : "No employees found"}
             >
-              {managers.map((manager) => {
-                const displayName = `${manager.firstName} ${manager.lastName} (${manager.email})`;
+              {employees.map((employee) => {
+                const fullName = employee.name || `${employee.firstName || ''} ${employee.lastName || ''}`.trim();
+                const email = employee.email || '';
+                
                 return (
-                  <Option key={manager.id} value={manager.id}>
-                    {displayName}
+                  <Option key={employee.id} value={employee.id}>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <div style={{ marginRight: 12 }}>
+                        {employee.avatar ? (
+                          <img 
+                            src={employee.avatar} 
+                            alt={fullName} 
+                            style={{ width: 24, height: 24, borderRadius: '50%' }} 
+                          />
+                        ) : (
+                          <div style={{
+                            width: 24,
+                            height: 24,
+                            borderRadius: '50%',
+                            backgroundColor: '#f0f2f5',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#666'
+                          }}>
+                            <UserOutlined style={{ fontSize: 12 }} />
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 500 }}>{fullName}</div>
+                        <div style={{ fontSize: 12, color: '#666' }}>
+                          {email}
+                          {employee.role && (
+                            <span style={{ 
+                              marginLeft: 8, 
+                              padding: '2px 6px', 
+                              background: '#f0f2f5', 
+                              borderRadius: 4, 
+                              fontSize: 11 
+                            }}>
+                              {employee.role}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </Option>
                 );
               })}
@@ -339,8 +404,8 @@ const FeedbackRequestForm: React.FC = () => {
               },
             ]}
           >
-            <DatePicker 
-              style={{ width: '100%' }} 
+            <DatePicker
+              style={{ width: '100%' }}
               disabledDate={(current) => {
                 // Disable dates before today
                 return current && current < dayjs().startOf('day');
@@ -349,44 +414,80 @@ const FeedbackRequestForm: React.FC = () => {
           </Form.Item>
 
           <Form.Item
+            name="cycleId"
+            label="Feedback Cycle"
+            rules={[{ required: true, message: 'Please select a feedback cycle' }]}
+          >
+            <Select
+              placeholder="Select feedback cycle"
+              loading={isLoadingCycles}
+              showSearch
+              optionFilterProp="children"
+              filterOption={(input, option) => {
+                const children = option?.children ? String(option.children) : '';
+                return children.toLowerCase().includes(input.toLowerCase());
+              }}
+            >
+              {cycles.map((cycle) => {
+                const cycleLabel = (
+                  <div>
+                    <div style={{ fontWeight: 500 }}>{cycle.name}</div>
+                    <div style={{ fontSize: 12, color: '#666' }}>
+                      {new Date(cycle.startDate).toLocaleDateString()} - {new Date(cycle.endDate).toLocaleDateString()}
+                      <span style={{ 
+                        marginLeft: 8, 
+                        padding: '2px 6px', 
+                        background: cycle.status === 'active' ? '#e6f7ff' : '#f0f0f0',
+                        color: cycle.status === 'active' ? '#1890ff' : '#666',
+                        borderRadius: 4, 
+                        fontSize: 11,
+                        textTransform: 'capitalize'
+                      }}>
+                        {cycle.status}
+                      </span>
+                    </div>
+                  </div>
+                );
+
+                return (
+                  <Option key={cycle.id} value={cycle.id} label={cycle.name}>
+                    {cycleLabel}
+                  </Option>
+                );
+              })}
+            </Select>
+          </Form.Item>
+
+          <Form.Item
             name="message"
             label="Message to Recipient"
             rules={[{ required: true, message: 'Please enter a message' }]}
           >
-            <TextArea rows={4} placeholder="Enter your message to the recipient" />
+            <Input.TextArea rows={4} placeholder="Enter your message to the recipient" />
           </Form.Item>
 
           <Form.Item>
             <Space>
-              <Button 
-                type="primary" 
-                htmlType="submit" 
-                loading={loading}
-                disabled={!form.isFieldsTouched()}
-              >
-                {id ? 'Update Request' : 'Submit Request'}
+              <Button type="primary" htmlType="submit" loading={isLoading}>
+                {id ? 'Update' : 'Submit'}
               </Button>
-              <Button 
-                onClick={() => setIsModalVisible(true)}
-                disabled={loading}
-              >
+              <Button onClick={() => setIsModalVisible(true)} loading={isLoading}>
                 Cancel
               </Button>
             </Space>
           </Form.Item>
         </Form>
-
         <Modal
           title="Cancel Request"
           open={isModalVisible}
           onOk={handleCancel}
-          onCancel={() => setIsModalVisible(false)}
+          onCancel={handleModalCancel}
           okText="Yes, Cancel"
           cancelText="No, Continue"
         >
-          <Text>
+          <Typography.Text>
             Are you sure you want to cancel this request? Any unsaved changes will be lost.
-          </Text>
+          </Typography.Text>
         </Modal>
       </Card>
     </div>

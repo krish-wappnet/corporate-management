@@ -1,34 +1,36 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { FC } from 'react';
 import { useNavigate } from 'react-router-dom';
+import api from '../../services/api';
 import { 
+  Table, 
+  Card, 
   Button, 
   Space, 
   Tag, 
+  Typography, 
   Select, 
+  Input, 
   Tooltip, 
-  message,
-  Table,
-  Input,
-  type TableColumnType,
   Modal,
-  Typography,
-  Card
+  message,
+  type TableColumnType
 } from 'antd';
 import { 
   CheckCircleOutlined, 
-  EyeOutlined,
-  SearchOutlined,
-  ReloadOutlined,
-  CloseCircleOutlined
+  EyeOutlined, 
+  SearchOutlined, 
+  ReloadOutlined, 
+  CloseCircleOutlined 
 } from '@ant-design/icons';
+import { showSuccessToast, showErrorToast } from '../../components/common/Toast';
 import type {
   FeedbackRequest,
   FeedbackType,
   User
 } from '../../types/feedback.types';
 import type { RequestStatus } from '../../types/feedback.types';
-import { getFeedbackRequests, approveFeedbackRequest } from '../../api/feedbackApi';
+import { getFeedbackRequests } from '../../api/feedbackApi';
 
 const { Text } = Typography;
 
@@ -93,12 +95,31 @@ const FeedbackRequestsAdmin: FC = () => {
   const handleApproveRequest = async (requestId: string) => {
     try {
       setLoading(true);
-      await approveFeedbackRequest(requestId);
-      message.success('Feedback request approved successfully');
-      fetchRequests(pagination.current, pagination.pageSize);
-    } catch (error) {
+      console.log('Approving request with ID:', requestId);
+      
+      // Get the current request to get the recipientId
+      const request = await api.get(`/feedback/requests/${requestId}`);
+      const recipientId = request.data.recipientId;
+      
+      // Update the request status to completed
+      const response = await api.patch(`/feedback/requests/${requestId}`, {
+        status: 'completed',
+        recipientId: recipientId
+      });
+      
+      console.log('Approve API response:', response.data);
+      showSuccessToast('Feedback request approved successfully');
+      
+      // Force refresh the requests
+      await fetchRequests(pagination.current, pagination.pageSize);
+      console.log('Requests refreshed after approval');
+    } catch (error: any) {
       console.error('Error approving feedback request:', error);
-      message.error('Failed to approve feedback request');
+      if (error.response) {
+        console.error('Error response data:', error.response.data);
+        console.error('Error response status:', error.response.status);
+      }
+      showErrorToast(error.response?.data?.message || 'Failed to approve feedback request');
     } finally {
       setLoading(false);
     }
@@ -107,12 +128,31 @@ const FeedbackRequestsAdmin: FC = () => {
   const handleDeclineRequest = async (requestId: string) => {
     try {
       setLoading(true);
-      await declineFeedbackRequest(requestId);
-      message.success('Feedback request declined successfully');
-      fetchRequests(pagination.current, pagination.pageSize);
-    } catch (error) {
+      console.log('Declining request with ID:', requestId);
+      
+      // Get the current request to get the recipientId
+      const request = await api.get(`/feedback/requests/${requestId}`);
+      const recipientId = request.data.recipientId;
+      
+      // Update the request status to declined
+      const response = await api.patch(`/feedback/requests/${requestId}`, {
+        status: 'declined',
+        recipientId: recipientId
+      });
+      
+      console.log('Decline API response:', response.data);
+      showSuccessToast('Feedback request declined successfully');
+      
+      // Force refresh the requests
+      await fetchRequests(pagination.current, pagination.pageSize);
+      console.log('Requests refreshed after decline');
+    } catch (error: any) {
       console.error('Error declining feedback request:', error);
-      message.error('Failed to decline feedback request');
+      if (error.response) {
+        console.error('Error response data:', error.response.data);
+        console.error('Error response status:', error.response.status);
+      }
+      showErrorToast(error.response?.data?.message || 'Failed to decline feedback request');
     } finally {
       setLoading(false);
       setIsDeclineModalVisible(false);
@@ -448,12 +488,6 @@ const FeedbackRequestsAdmin: FC = () => {
       </div>
     </div>
   );
-};
-
-// Mock declineFeedbackRequest API (replace with actual implementation)
-const declineFeedbackRequest = async (requestId: string) => {
-  console.log('Declining feedback request:', requestId);
-  return Promise.resolve();
 };
 
 export default FeedbackRequestsAdmin;

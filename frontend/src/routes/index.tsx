@@ -25,6 +25,7 @@ import FeedbackCycleForm from '../pages/feedback/FeedbackCycleForm';
 import FeedbackRequests from '../pages/feedback/FeedbackRequests';
 import FeedbackRequestForm from '../pages/feedback/FeedbackRequestForm';
 import FeedbackRequestsAdmin from '../pages/feedback/FeedbackRequestsAdmin';
+import FeedbackAnalytics from '../pages/feedback/FeedbackAnalytics';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -392,6 +393,18 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
+      {/* Feedback Analytics */}
+      <Route
+        path="/feedback/analytics"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <FeedbackAnalytics />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
       <Route
         path="/feedback/requests/:id"
         element={

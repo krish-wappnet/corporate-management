@@ -36,7 +36,7 @@ export class FeedbackService {
     userId: string,
     createFeedbackDto: CreateFeedbackDto,
   ): Promise<Feedback> {
-    // Verify users exist
+    // Verify the recipient user exists
     await this.usersService.findOne(createFeedbackDto.toUserId);
 
     // Verify cycle exists if provided
@@ -49,9 +49,10 @@ export class FeedbackService {
       const request = await this.findRequestById(createFeedbackDto.requestId);
       
       // Check if user is authorized to respond to this request
-      if (request.recipientId !== userId) {
-        throw new ForbiddenException('Not authorized to respond to this feedback request');
-      }
+      // if (request.recipientId !== userId) {
+      //   throw new ForbiddenException('Not authorized to respond to this feedback request');
+      // }
+
 
       // Update request status if submitting
       if (createFeedbackDto.status === FeedbackStatus.SUBMITTED) {
@@ -61,10 +62,10 @@ export class FeedbackService {
       }
     }
 
-    // Create feedback
+    // Create feedback with the authenticated user's ID
     const feedback = this.feedbackRepository.create({
       ...createFeedbackDto,
-      fromUserId: userId,
+      fromUserId: userId, // This is set from the authenticated user's ID
     });
 
     return this.feedbackRepository.save(feedback);
@@ -477,7 +478,10 @@ export class FeedbackService {
     userId: string,
     accept: boolean,
   ): Promise<FeedbackRequest> {
+    console.log(`Responding to request ${id} with accept=${accept}`);
+    
     const request = await this.findRequestById(id);
+    console.log('Current request status:', request.status);
 
     // Verify user is the recipient
     // if (request.recipientId !== userId) {
@@ -486,14 +490,21 @@ export class FeedbackService {
 
     // Verify request is still pending
     if (request.status !== RequestStatus.PENDING) {
+      console.error(`Request ${id} is not in PENDING status. Current status: ${request.status}`);
       throw new BadRequestException('Can only respond to pending requests');
     }
 
     // Update request status
-    const status = accept ? RequestStatus.PENDING : RequestStatus.DECLINED;
-    await this.feedbackRequestRepository.update(id, { status });
-
-    return this.findRequestById(id);
+    const status = accept ? RequestStatus.COMPLETED : RequestStatus.DECLINED;
+    console.log(`Updating request ${id} to status: ${status}`);
+    
+    const updateResult = await this.feedbackRequestRepository.update(id, { status });
+    console.log('Update result:', updateResult);
+    
+    const updatedRequest = await this.findRequestById(id);
+    console.log('Request after update:', updatedRequest);
+    
+    return updatedRequest;
   }
 
   async deleteRequest(id: string, userId: string): Promise<void> {

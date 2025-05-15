@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAppSelector } from '../../store/store';
 import { cn } from '../../lib/utils';
-import { LayoutDashboard, Users, Briefcase, ClipboardList, FileText, Settings, ChevronDown, Target, BarChart2, Tag, Target as OkrIcon, BarChart as AnalyticsIcon, MessageSquare, Calendar, Inbox, MessageCircle } from 'lucide-react';
+import { LayoutDashboard, Users, Briefcase, ClipboardList, FileText, Settings, ChevronDown, Target, BarChart2, Tag, Target as OkrIcon, BarChart as AnalyticsIcon, MessageSquare, Calendar, Inbox } from 'lucide-react';
 import type { NavItem, SidebarNavProps } from '../../types/navigation';
 
 // Define navigation items
@@ -159,10 +159,22 @@ const navItems: NavItem[] = [
         roles: ['admin', 'manager', 'employee']
       },
       {
+        title: 'Give Feedback',
+        path: '/feedback/new',
+        icon: MessageSquare,
+        roles: ['admin', 'manager', 'employee']
+      },
+      {
         title: 'Feedback Requests',
         path: '/feedback/requests',
         icon: Inbox,
-        roles: ['employee']
+        roles: ['admin', 'manager', 'employee']
+      },
+      {
+        title: 'Manage Requests',
+        path: '/feedback/requests/admin',
+        icon: Inbox,
+        roles: ['admin', 'manager']
       },
       {
         title: 'Feedback Cycles',
@@ -171,10 +183,10 @@ const navItems: NavItem[] = [
         roles: ['admin', 'manager']
       },
       {
-        title: 'All Requests',
-        path: '/admin/feedback/requests',
-        icon: MessageCircle,
-        roles: ['admin']
+        title: 'Feedback Analytics',
+        path: '/feedback/analytics',
+        icon: BarChart2,
+        roles: ['manager', 'employee']
       }
     ]
   },

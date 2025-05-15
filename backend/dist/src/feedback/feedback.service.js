@@ -35,9 +35,6 @@ let FeedbackService = class FeedbackService {
         }
         if (createFeedbackDto.requestId) {
             const request = await this.findRequestById(createFeedbackDto.requestId);
-            if (request.recipientId !== userId) {
-                throw new common_1.ForbiddenException('Not authorized to respond to this feedback request');
-            }
             if (createFeedbackDto.status === feedback_entity_1.FeedbackStatus.SUBMITTED) {
                 await this.feedbackRequestRepository.update(request.id, {
                     status: feedback_request_entity_1.RequestStatus.COMPLETED,
@@ -309,13 +306,20 @@ let FeedbackService = class FeedbackService {
         return this.feedbackRequestRepository.save(updatedRequest);
     }
     async respondToRequest(id, userId, accept) {
+        console.log(`Responding to request ${id} with accept=${accept}`);
         const request = await this.findRequestById(id);
+        console.log('Current request status:', request.status);
         if (request.status !== feedback_request_entity_1.RequestStatus.PENDING) {
+            console.error(`Request ${id} is not in PENDING status. Current status: ${request.status}`);
             throw new common_1.BadRequestException('Can only respond to pending requests');
         }
-        const status = accept ? feedback_request_entity_1.RequestStatus.PENDING : feedback_request_entity_1.RequestStatus.DECLINED;
-        await this.feedbackRequestRepository.update(id, { status });
-        return this.findRequestById(id);
+        const status = accept ? feedback_request_entity_1.RequestStatus.COMPLETED : feedback_request_entity_1.RequestStatus.DECLINED;
+        console.log(`Updating request ${id} to status: ${status}`);
+        const updateResult = await this.feedbackRequestRepository.update(id, { status });
+        console.log('Update result:', updateResult);
+        const updatedRequest = await this.findRequestById(id);
+        console.log('Request after update:', updatedRequest);
+        return updatedRequest;
     }
     async deleteRequest(id, userId) {
         const request = await this.findRequestById(id);

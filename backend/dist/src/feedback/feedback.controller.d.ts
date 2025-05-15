@@ -13,6 +13,7 @@ import { PaginationResponseDto } from '../common/dtos/pagination-response.dto';
 export declare class FeedbackController {
     private readonly feedbackService;
     constructor(feedbackService: FeedbackService);
+    findAllCycles(paginationDto: PaginationDto, status?: CycleStatus, type?: string, active?: boolean | string): Promise<PaginationResponseDto<FeedbackCycle>>;
     findAllRequests(req: any, paginationDto: PaginationDto, requesterId?: string, recipientId?: string, subjectId?: string, status?: RequestStatus, cycleId?: string): Promise<PaginationResponseDto<FeedbackRequest>>;
     createRequest(req: any, createRequestDto: CreateFeedbackRequestDto): Promise<FeedbackRequest>;
     createFeedback(req: any, createFeedbackDto: CreateFeedbackDto): Promise<Feedback>;
@@ -21,7 +22,6 @@ export declare class FeedbackController {
     updateFeedback(req: any, id: string, updateFeedbackDto: UpdateFeedbackDto): Promise<Feedback>;
     removeFeedback(req: any, id: string): Promise<void>;
     createCycle(createCycleDto: CreateFeedbackCycleDto): Promise<FeedbackCycle>;
-    findAllCycles(paginationDto: PaginationDto, status?: CycleStatus, type?: string, active?: boolean | string): Promise<PaginationResponseDto<FeedbackCycle>>;
     findOneCycle(id: string): Promise<FeedbackCycle>;
     updateCycle(id: string, updateCycleDto: UpdateFeedbackCycleDto): Promise<FeedbackCycle>;
     removeCycle(id: string): Promise<void>;

@@ -28,7 +28,6 @@ import type { SelectChangeEvent } from '@mui/material/Select';
 import { 
   Add as AddIcon, 
   Search as SearchIcon, 
-  FilterList as FilterListIcon,
   Visibility as VisibilityIcon,
   Check as CheckIcon,
   Close as CloseIcon,
@@ -39,7 +38,6 @@ import { useAuth } from '../../hooks/useAuth';
 import { getFeedbackRequests } from '../../api/feedbackApi';
 import type { FeedbackRequest, RequestStatus } from '../../types/feedback.types';
 import { FeedbackType } from '../../types/feedback.types';
-import PageHeader from '../../components/PageHeader';
 import { formatDistanceToNow } from 'date-fns';
 
 const FeedbackRequests: React.FC = () => {
@@ -53,8 +51,9 @@ const FeedbackRequests: React.FC = () => {
   const [total, setTotal] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
-    status: '',
-    type: '',
+    search: '',
+    type: '' as FeedbackType | '',
+    status: '' as RequestStatus | '',
     requesterId: '',
     recipientId: '',
     subjectId: '',
@@ -68,8 +67,8 @@ const FeedbackRequests: React.FC = () => {
         page: page + 1,
         limit: rowsPerPage,
         ...(searchTerm && { search: searchTerm }),
-        ...(filters.status && { status: (filters.status as RequestStatus) || undefined }),
-        ...(filters.type && { type: (filters.type as FeedbackType) || undefined }),
+        ...(filters.status && { status: filters.status }),
+        ...(filters.type && { type: filters.type }),
         ...(filters.requesterId && { requesterId: filters.requesterId }),
         ...(filters.recipientId && { recipientId: filters.recipientId }),
         ...(filters.subjectId && { subjectId: filters.subjectId }),
@@ -90,7 +89,7 @@ const FeedbackRequests: React.FC = () => {
     fetchRequests();
   }, [page, rowsPerPage, filters]);
 
-  const handleChangePage = (event: unknown, newPage: number) => {
+  const handleChangePage = (_: unknown, newPage: number) => {
     setPage(newPage);
   };
 
@@ -99,31 +98,24 @@ const FeedbackRequests: React.FC = () => {
     setPage(0);
   };
 
-  const handleTypeFilterChange = (event: SelectChangeEvent<unknown>) => {
-    const { value } = event.target;
+  const handleTypeFilterChange = (event: SelectChangeEvent<FeedbackType | ''>) => {
     setFilters(prev => ({
       ...prev,
-      type: value as FeedbackType
+      type: event.target.value as FeedbackType | ''
     }));
     setPage(0);
   };
 
-  const handleStatusFilterChange = (event: SelectChangeEvent<unknown>) => {
-    const { value } = event.target;
+  const handleStatusFilterChange = (event: SelectChangeEvent<RequestStatus | ''>) => {
     setFilters(prev => ({
       ...prev,
-      status: value as RequestStatus
+      status: event.target.value as RequestStatus | ''
     }));
     setPage(0);
   };
 
-  const handleFilterChange = (e: any) => {
-    const { name, value } = e.target;
-    setFilters(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    setPage(0);
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(event.target.value);
   };
 
   const getStatusColor = (status: RequestStatus) => {
@@ -141,7 +133,7 @@ const FeedbackRequests: React.FC = () => {
     }
   };
 
-  const getTypeLabel = (type: FeedbackType) => {
+  const getTypeLabel = (type: FeedbackType): string => {
     switch (type) {
       case FeedbackType.PEER:
         return 'Peer';
@@ -156,6 +148,10 @@ const FeedbackRequests: React.FC = () => {
       default:
         return type;
     }
+  };
+
+  const getStatusLabel = (status: RequestStatus): string => {
+    return status.charAt(0).toUpperCase() + status.slice(1);
   };
 
   const handleRespondToRequest = async (requestId: string, accept: boolean) => {
@@ -194,12 +190,11 @@ const FeedbackRequests: React.FC = () => {
         <CardContent>
           <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
             <TextField
-              fullWidth
               variant="outlined"
+              size="small"
               placeholder="Search requests..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              size="small"
+              onChange={handleSearchChange}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -214,11 +209,12 @@ const FeedbackRequests: React.FC = () => {
                 value={filters.type}
                 onChange={handleTypeFilterChange}
                 label="Type"
+                size="small"
               >
                 <MenuItem value="">All Types</MenuItem>
                 {Object.entries(FeedbackType).map(([key, value]) => (
                   <MenuItem key={key} value={value}>
-                    {getTypeLabel(value as FeedbackType)}
+                    {value}
                   </MenuItem>
                 ))}
               </Select>
@@ -229,11 +225,12 @@ const FeedbackRequests: React.FC = () => {
                 value={filters.status}
                 onChange={handleStatusFilterChange}
                 label="Status"
+                size="small"
               >
                 <MenuItem value="">All Statuses</MenuItem>
-                {Object.entries(RequestStatus).map(([key, value]) => (
-                  <MenuItem key={key} value={value}>
-                    {value}
+                {['pending', 'completed', 'declined', 'expired'].map((status) => (
+                  <MenuItem key={status} value={status}>
+                    {getStatusLabel(status as RequestStatus)}
                   </MenuItem>
                 ))}
               </Select>
