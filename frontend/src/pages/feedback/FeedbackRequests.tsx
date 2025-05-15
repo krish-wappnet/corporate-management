@@ -37,8 +37,8 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
 import { getFeedbackRequests } from '../../api/feedbackApi';
-import type { FeedbackRequest } from '../../types/feedback.types';
-import { RequestStatus, FeedbackType } from '../../types/feedback.types';
+import type { FeedbackRequest, RequestStatus } from '../../types/feedback.types';
+import { FeedbackType } from '../../types/feedback.types';
 import PageHeader from '../../components/PageHeader';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -128,13 +128,13 @@ const FeedbackRequests: React.FC = () => {
 
   const getStatusColor = (status: RequestStatus) => {
     switch (status) {
-      case RequestStatus.PENDING:
+      case 'pending':
         return 'warning';
-      case RequestStatus.COMPLETED:
+      case 'completed':
         return 'success';
-      case RequestStatus.DECLINED:
+      case 'declined':
         return 'error';
-      case RequestStatus.EXPIRED:
+      case 'expired':
         return 'default';
       default:
         return 'default';
@@ -324,7 +324,7 @@ const FeedbackRequests: React.FC = () => {
                     <TableCell>
                       {new Date(request.dueDate).toLocaleDateString()}
                       <Typography variant="caption" display="block" color="textSecondary">
-                        {new Date(request.dueDate) < new Date() && request.status === RequestStatus.PENDING
+                        {new Date(request.dueDate) < new Date() && request.status === 'pending'
                           ? 'Overdue'
                           : `in ${formatDistanceToNow(new Date(request.dueDate), { addSuffix: true })}`
                         }
@@ -341,7 +341,7 @@ const FeedbackRequests: React.FC = () => {
                           </IconButton>
                         </Tooltip>
                         
-                        {request.status === RequestStatus.PENDING && request.recipientId === user?.id && (
+                        {request.status === 'pending' && request.recipientId === user?.id && (
                           <>
                             <Tooltip title="Accept Request">
                               <IconButton 
@@ -364,7 +364,7 @@ const FeedbackRequests: React.FC = () => {
                           </>
                         )}
                         
-                        {request.status === RequestStatus.PENDING && request.requesterId === user?.id && (
+                        {request.status === 'pending' && request.requesterId === user?.id && (
                           <>
                             <Tooltip title="Edit">
                               <IconButton 

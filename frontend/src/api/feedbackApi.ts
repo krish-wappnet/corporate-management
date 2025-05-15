@@ -219,26 +219,42 @@ export interface RespondToFeedbackRequestPayload {
   reason?: string;
 }
 
-export const respondToFeedbackRequest = async (
-  id: string, 
-  accept: boolean, 
-  reason: string = ''
+export const approveFeedbackRequest = async (
+  id: string
 ): Promise<RespondToFeedbackRequestResponse> => {
   try {
-    const payload: RespondToFeedbackRequestPayload = { accept };
-    if (!accept && reason) {
-      payload.reason = reason;
+    const payload = {
+      status: 'approved',
+      isAnonymous: false
+    };
+    
+    const response = await api.patch<RespondToFeedbackRequestResponse>(
+      `/feedback/requests/${id}`,
+      payload,
+      { 
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    
+    if (!response.data) {
+      throw new Error('No response data received');
     }
     
-    const response = await api.post<RespondToFeedbackRequestResponse>(
-      `/feedback/requests/${id}/respond`,
-      payload,
-      { headers: getAuthHeaders() }
-    );
-    return response.data;
-  } catch (error) {
-    console.error('Error responding to feedback request:', error);
-    throw error;
+    return {
+      success: true,
+      message: 'Feedback request approved successfully',
+      data: response.data
+    };
+  } catch (error: any) {
+    console.error('Error approving feedback request:', error);
+    const errorMessage = 
+      error?.response?.data?.message || 
+      error?.message || 
+      'Failed to approve feedback request. Please try again.';
+    throw new Error(errorMessage);
   }
 };
 

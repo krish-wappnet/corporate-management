@@ -39,13 +39,7 @@ export enum CycleType {
   THREE_SIXTY = '360',
 }
 
-export enum RequestStatus {
-  PENDING = 'pending',
-  COMPLETED = 'completed',
-  DECLINED = 'declined',
-  EXPIRED = 'expired',
-  APPROVED = "APPROVED",
-}
+export type RequestStatus = 'pending' | 'completed' | 'declined' | 'expired';
 
 export interface Feedback {
   id: string;

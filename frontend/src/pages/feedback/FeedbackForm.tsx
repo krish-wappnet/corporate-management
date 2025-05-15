@@ -12,6 +12,12 @@ import {
   Rate,
   Checkbox,
 } from 'antd';
+import { 
+  UserOutlined,
+  StarOutlined,
+  CommentOutlined,
+  CheckSquareOutlined 
+} from '@ant-design/icons';
 import { useSnackbar } from 'notistack';
 import { useAuth } from '../../hooks/useAuth';
 import { FeedbackType } from '../../types/feedback.types';
@@ -174,18 +180,18 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ isEdit = false }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
-        <div className="mb-8 animate-slide-in">
-          <Title level={2} className="text-3xl font-bold text-gray-900 tracking-tight">
+        <div className="mb-10 animate-slide-in">
+          <Title level={2} className="text-4xl font-bold text-gray-900 tracking-tight">
             {isEdit ? 'Edit Feedback' : 'Provide Feedback'}
           </Title>
-          <p className="mt-2 text-gray-600 text-lg">
-            Share constructive feedback to help your colleagues grow
+          <p className="mt-3 text-lg text-gray-600">
+            Share constructive feedback to help your colleagues grow and improve.
           </p>
         </div>
         
-        <Card className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 animate-slide-in">
+        <Card className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 animate-slide-in">
           <Spin spinning={loading}>
             <Form
               form={form}
@@ -195,67 +201,78 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ isEdit = false }) => {
               className="space-y-8"
             >
               {/* General Information Section */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Form.Item
-                  name="type"
-                  label={<span className="text-gray-700 font-semibold">Feedback Type</span>}
-                  rules={[{ required: true, message: 'Please select feedback type' }]}
-                >
-                  <Select
-                    placeholder="Select feedback type"
-                    className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500"
+              <div className="space-y-6 bg-gray-50 p-6 rounded-xl border border-gray-100">
+                <div className="flex items-center space-x-2">
+                  <UserOutlined className="text-blue-600 text-xl" />
+                  <h4 className="text-xl font-semibold text-gray-900">General Information</h4>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Form.Item
+                    name="type"
+                    label={<span className="text-gray-700 font-semibold">Feedback Type</span>}
+                    rules={[{ required: true, message: 'Please select feedback type' }]}
                   >
-                    {Object.values(FeedbackType).map((type) => (
-                      <Option key={type} value={type}>
-                        {type}
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
+                    <Select
+                      placeholder="Select feedback type"
+                      size="large"
+                      className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500 transition-all"
+                    >
+                      {Object.values(FeedbackType).map((type) => (
+                        <Option key={type} value={type}>
+                          {type}
+                        </Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
 
-                <Form.Item
-                  name="toUserId"
-                  label={<span className="text-gray-700 font-semibold">Recipient</span>}
-                  rules={[{ required: true, message: 'Please select a recipient' }]}
-                >
-                  <Select
-                    showSearch
-                    placeholder="Select a recipient"
-                    optionFilterProp="children"
-                    filterOption={(input, option) => {
-                      const label = typeof option?.label === 'string' ? option.label : '';
-                      const email = option?.email || '';
-                      return (
-                        label.toLowerCase().includes(input.toLowerCase()) ||
-                        email.toLowerCase().includes(input.toLowerCase())
-                      );
-                    }}
-                    className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500"
+                  <Form.Item
+                    name="toUserId"
+                    label={<span className="text-gray-700 font-semibold">Recipient</span>}
+                    rules={[{ required: true, message: 'Please select a recipient' }]}
                   >
-                    {users.map((user) => (
-                      <Option key={user.id} value={user.id} label={user.name} email={user.email}>
-                        <div className="flex items-center space-x-3">
-                          <img
-                            src={user.avatar}
-                            alt={user.name}
-                            className="w-8 h-8 rounded-full border border-gray-200"
-                          />
-                          <div>
-                            <span className="font-medium text-gray-900">{user.name}</span>
-                            <span className="block text-sm text-gray-500">{user.email}</span>
+                    <Select
+                      showSearch
+                      placeholder="Search for a recipient"
+                      size="large"
+                      optionFilterProp="children"
+                      filterOption={(input, option) => {
+                        const label = typeof option?.label === 'string' ? option.label : '';
+                        const email = option?.email || '';
+                        return (
+                          label.toLowerCase().includes(input.toLowerCase()) ||
+                          email.toLowerCase().includes(input.toLowerCase())
+                        );
+                      }}
+                      className="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500 transition-all"
+                    >
+                      {users.map((user) => (
+                        <Option key={user.id} value={user.id} label={user.name} email={user.email}>
+                          <div className="flex items-center space-x-3 py-1">
+                            <img
+                              src={user.avatar}
+                              alt={user.name}
+                              className="w-10 h-10 rounded-full border border-gray-200 object-cover"
+                            />
+                            <div>
+                              <span className="font-medium text-gray-900">{user.name}</span>
+                              <span className="block text-sm text-gray-500">{user.email}</span>
+                            </div>
                           </div>
-                        </div>
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
+                        </Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </div>
               </div>
 
               <Divider className="my-6" />
 
               {/* Performance Ratings Section */}
-              <div className="space-y-6">
-                <h4 className="text-xl font-semibold text-gray-900">Performance Ratings</h4>
+              <div className="space-y-6 bg-gray-50 p-6 rounded-xl border border-gray-100">
+                <div className="flex items-center space-x-2">
+                  <StarOutlined className="text-blue-600 text-xl" />
+                  <h4 className="text-xl font-semibold text-gray-900">Performance Ratings</h4>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {ratingCriteria.map((criterion) => (
                     <Form.Item
@@ -266,7 +283,7 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ isEdit = false }) => {
                     >
                       <Rate
                         allowHalf
-                        className="text-2xl"
+                        className="text-xl"
                         tooltips={['Poor', 'Fair', 'Good', 'Very Good', 'Excellent']}
                       />
                     </Form.Item>
@@ -277,8 +294,11 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ isEdit = false }) => {
               <Divider className="my-6" />
 
               {/* Feedback Details Section */}
-              <div className="space-y-6">
-                <h4 className="text-xl font-semibold text-gray-900">Feedback Details</h4>
+              <div className="space-y-6 bg-gray-50 p-6 rounded-xl border border-gray-100">
+                <div className="flex items-center space-x-2">
+                  <CommentOutlined className="text-blue-600 text-xl" />
+                  <h4 className="text-xl font-semibold text-gray-900">Feedback Details</h4>
+                </div>
                 <Form.Item
                   name="content"
                   label={<span className="text-gray-700 font-semibold">Detailed Feedback</span>}
@@ -319,13 +339,17 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ isEdit = false }) => {
               <Divider className="my-6" />
 
               {/* Submission Options Section */}
-              <div className="space-y-6">
+              <div className="space-y-6 bg-gray-50 p-6 rounded-xl border border-gray-100">
+                <div className="flex items-center space-x-2">
+                  <CheckSquareOutlined className="text-blue-600 text-xl" />
+                  <h4 className="text-xl font-semibold text-gray-900">Submission Options</h4>
+                </div>
                 <Form.Item
                   name="isAnonymous"
                   valuePropName="checked"
                   className="mb-0"
                 >
-                  <Checkbox className="text-gray-700 font-medium">
+                  <Checkbox className="text-gray-700 font-medium text-base">
                     Submit Anonymously
                   </Checkbox>
                 </Form.Item>
@@ -334,6 +358,7 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ isEdit = false }) => {
                   <Button
                     onClick={() => navigate(-1)}
                     disabled={submitting}
+                    size="large"
                     className="px-6 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 transition-all"
                   >
                     Cancel
@@ -342,6 +367,7 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ isEdit = false }) => {
                     type="primary"
                     htmlType="submit"
                     loading={submitting}
+                    size="large"
                     className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 transition-all"
                   >
                     {isEdit ? 'Update Feedback' : 'Submit Feedback'}

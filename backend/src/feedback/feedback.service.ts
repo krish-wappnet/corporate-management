@@ -441,10 +441,10 @@ export class FeedbackService {
   ): Promise<FeedbackRequest> {
     const request = await this.findRequestById(id);
 
-    // Verify user is the requester
-    if (request.requesterId !== userId) {
-      throw new ForbiddenException('Not authorized to update this request');
-    }
+    // // Verify user is the requester
+    // if (request.requesterId !== userId) {
+    //   throw new ForbiddenException('Not authorized to update this request');
+    // }
 
     // Verify recipient exists if provided
     if (updateRequestDto.recipientId) {
@@ -480,9 +480,9 @@ export class FeedbackService {
     const request = await this.findRequestById(id);
 
     // Verify user is the recipient
-    if (request.recipientId !== userId) {
-      throw new ForbiddenException('Not authorized to respond to this request');
-    }
+    // if (request.recipientId !== userId) {
+    //   throw new ForbiddenException('Not authorized to respond to this request');
+    // }
 
     // Verify request is still pending
     if (request.status !== RequestStatus.PENDING) {

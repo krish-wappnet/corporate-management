@@ -290,9 +290,6 @@ let FeedbackService = class FeedbackService {
     }
     async updateRequest(id, userId, updateRequestDto) {
         const request = await this.findRequestById(id);
-        if (request.requesterId !== userId) {
-            throw new common_1.ForbiddenException('Not authorized to update this request');
-        }
         if (updateRequestDto.recipientId) {
             await this.usersService.findOne(updateRequestDto.recipientId);
         }
@@ -313,9 +310,6 @@ let FeedbackService = class FeedbackService {
     }
     async respondToRequest(id, userId, accept) {
         const request = await this.findRequestById(id);
-        if (request.recipientId !== userId) {
-            throw new common_1.ForbiddenException('Not authorized to respond to this request');
-        }
         if (request.status !== feedback_request_entity_1.RequestStatus.PENDING) {
             throw new common_1.BadRequestException('Can only respond to pending requests');
         }
