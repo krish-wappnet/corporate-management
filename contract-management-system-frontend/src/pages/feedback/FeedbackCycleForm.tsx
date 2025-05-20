@@ -13,8 +13,6 @@ import {
   Col, 
   Space, 
   Tag,
-  InputNumber,
-  Divider
 } from 'antd';
 import { 
   SaveOutlined, 

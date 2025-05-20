@@ -1,9 +1,14 @@
+export type OkrStatus = 'draft' | 'active' | 'completed' | 'cancelled';
+export type OkrType = 'individual' | 'team' | 'company' | 'department';
+export type KeyResultType = 'number' | 'percentage' | 'currency';
+export type KeyResultStatus = 'on_track' | 'at_risk' | 'off_track' | 'completed';
+
 export interface Okr {
   id: string;
   title: string;
   description?: string;
-  type: 'individual' | 'team' | 'company' | 'department';
-  status: 'draft' | 'active' | 'completed' | 'cancelled';
+  type: OkrType;
+  status: OkrStatus;
   startDate: string;
   endDate: string;
   userId: string;
@@ -19,8 +24,8 @@ export interface Okr {
 export interface CreateOkrDto {
   title: string;
   description?: string;
-  type: 'individual' | 'team' | 'company' | 'department';
-  status?: 'draft' | 'active' | 'completed' | 'cancelled';
+  type: OkrType;
+  status?: OkrStatus;
   startDate: string;
   endDate: string;
   departmentId?: string;
@@ -32,6 +37,7 @@ export interface CreateOkrDto {
 export interface UpdateOkrDto extends Partial<CreateOkrDto> {}
 
 export interface KeyResult {
+  unit: string;
   id: string;
   title: string;
   description?: string;
@@ -39,10 +45,9 @@ export interface KeyResult {
   targetValue: number;
   currentValue: number;
   startValue: number;
-  unit: string;
   weight?: number;
   okrId: string;
-  status: 'on_track' | 'at_risk' | 'off_track' | 'completed';
+  status: KeyResultStatus;
   updates?: KeyResultUpdate[];
   createdAt: string;
   updatedAt: string;
@@ -55,13 +60,13 @@ export interface CreateKeyResultDto {
   targetValue: number;
   currentValue?: number;
   startValue: number;
-  unit: string;
   weight?: number;
   okrId: string;
+  unit: string;
 }
 
 export interface UpdateKeyResultDto extends Partial<CreateKeyResultDto> {
-  status?: 'on_track' | 'at_risk' | 'off_track' | 'completed';
+  status?: KeyResultStatus;
 }
 
 export interface KeyResultUpdate {

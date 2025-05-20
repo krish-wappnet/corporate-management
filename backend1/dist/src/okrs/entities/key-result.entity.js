@@ -69,8 +69,8 @@ __decorate([
     __metadata("design:type", okr_entity_1.Okr)
 ], KeyResult.prototype, "okr", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", String)
+    (0, typeorm_1.Column)({ type: 'uuid', nullable: true }),
+    __metadata("design:type", Object)
 ], KeyResult.prototype, "okrId", void 0);
 __decorate([
     (0, typeorm_1.OneToMany)(() => key_result_update_entity_1.KeyResultUpdate, (update) => update.keyResult, {

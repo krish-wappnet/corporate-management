@@ -27,8 +27,25 @@ export const okrApi = {
   },
 
   createOkr: async (data: CreateOkrDto): Promise<Okr> => {
-    const response = await api.post(API_URL, data);
-    return response.data;
+    console.log('Creating OKR with data:', JSON.stringify(data, null, 2));
+    console.log('Sending POST request to:', API_URL);
+    try {
+      const response = await api.post(API_URL, data);
+      console.log('OKR created successfully:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating OKR:', error);
+      if (error.response) {
+        console.error('Response data:', error.response.data);
+        console.error('Response status:', error.response.status);
+        console.error('Response headers:', error.response.headers);
+      } else if (error.request) {
+        console.error('No response received:', error.request);
+      } else {
+        console.error('Error setting up request:', error.message);
+      }
+      throw error;
+    }
   },
 
   updateOkr: async (id: string, data: UpdateOkrDto): Promise<Okr> => {

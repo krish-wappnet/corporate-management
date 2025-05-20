@@ -42,7 +42,7 @@ const navItems: NavItem[] = [
         title: "Add Employee",
         path: "/employees/new",
         icon: Users,
-        roles: ["admin"],
+        roles: ["admin","manager"],
       },
     ],
   },

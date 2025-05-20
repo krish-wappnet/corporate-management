@@ -17,7 +17,7 @@ export declare class KeyResult {
     weight: number;
     progress: number;
     okr: Okr;
-    okrId: string;
+    okrId: string | null;
     updates: KeyResultUpdate[];
     createdAt: Date;
     updatedAt: Date;

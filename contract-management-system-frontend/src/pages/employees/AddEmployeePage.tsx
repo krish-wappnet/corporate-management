@@ -3,7 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import type { AppDispatch } from "../../store/store";
 import { createUser } from "../../store/slices/userSlice";
-import { Button, Card, Form, Input, Select, message } from "antd";
+import { Button, Card, Form, Input, Select } from "antd";
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { UserOutlined, MailOutlined, LockOutlined } from "@ant-design/icons";
 import api from "../../services/api";
 
@@ -32,8 +34,9 @@ const AddEmployeePage: React.FC = () => {
         setDepartments(response.data);
       } catch (error) {
         console.error('Error fetching departments:', error);
-        setDepartmentsError('Failed to load departments');
-        message.error('Failed to load departments', 3);
+        const errorMessage = 'Failed to load departments';
+        setDepartmentsError(errorMessage);
+        toast.error(errorMessage);
       } finally {
         setDepartmentsLoading(false);
       }
@@ -68,13 +71,15 @@ const AddEmployeePage: React.FC = () => {
 
       await dispatch(createUser(userData)).unwrap();
 
-      message.success("Employee added successfully", 3);
+      toast.success("Employee added successfully");
       navigate("/employees");
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        message.error(error.message || "Failed to add employee", 3);
+    } catch (error: any) {
+      if (error.response && error.response.data && error.response.data.message) {
+        toast.error(error.response.data.message);
+      } else if (error.message) {
+        toast.error(error.message);
       } else {
-        message.error("Failed to add employee", 3);
+        toast.error("Failed to add employee");
       }
     } finally {
       setLoading(false);

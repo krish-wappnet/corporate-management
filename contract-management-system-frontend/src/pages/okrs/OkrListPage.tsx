@@ -1,40 +1,108 @@
-import React, { useEffect, useState, useCallback } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { Link, useNavigate } from "react-router-dom";
-import type { AppDispatch } from "../../store/store";
-import {
-  fetchOKRs,
-  selectOKRs,
-  selectOKRsLoading,
-  selectOKRsError,
-  selectTotalOKRs,
-  selectOKRFilters,
-} from "../../store/slices/okrSlice";
-import type { Okr, OkrFilterParams } from "../../types/okr";
-import {
-  Table,
-  Button,
-  Input,
-  Select,
-  Card,
-  Typography,
-  Badge,
-  message,
-  Row,
-  Col,
-} from "antd";
-import { PlusOutlined } from "@ant-design/icons";
-import type { ColumnsType } from "antd/es/table";
-import type { TablePaginationConfig } from "antd/es/table/interface";
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Table, Card, Button, Input, Select, Row, Col, Badge, message, Typography } from 'antd';
+import { PlusOutlined } from '@ant-design/icons';
+import { Link, useNavigate } from 'react-router-dom';
+import type { TablePaginationConfig } from 'antd/es/table';
+import type { ColumnsType } from 'antd/es/table';
+import type { Okr, OkrFilterParams, OkrStatus, OkrType } from '../../types/okr';
 
-const { Title } = Typography;
+// Mock user data for display
+const mockUsers: Record<string, { name: string; email: string }> = {
+  user1: { name: 'John Doe', email: 'john@example.com' },
+  user2: { name: 'Jane Smith', email: 'jane@example.com' },
+  user3: { name: 'Robert Johnson', email: 'robert@example.com' },
+  user4: { name: 'Emily Chen', email: 'emily@example.com' },
+  user5: { name: 'Michael Brown', email: 'michael@example.com' },
+};
+
+// Mock data for OKRs with status values matching OkrStatus type
+const mockOkrs: Okr[] = [
+  {
+    id: '1',
+    title: 'Increase Product Adoption',
+    description: 'Improve product adoption rate by 30%',
+    type: 'company',
+    status: 'active',
+    startDate: '2025-01-01',
+    endDate: '2025-12-31',
+    userId: 'user1',
+    frequency: 'annual',
+    keyResults: [],
+    progress: 45,
+    createdAt: '2024-12-15',
+    updatedAt: '2025-05-15',
+  },
+  {
+    id: '2',
+    title: 'Enhance Customer Support',
+    description: 'Achieve 95% customer satisfaction rate',
+    type: 'team',
+    status: 'completed',
+    startDate: '2025-01-15',
+    endDate: '2025-06-30',
+    userId: 'user2',
+    frequency: 'quarterly',
+    keyResults: [],
+    progress: 100,
+    createdAt: '2024-12-20',
+    updatedAt: '2025-05-10',
+  },
+  {
+    id: '3',
+    title: 'Expand to New Markets',
+    description: 'Launch product in 3 new countries',
+    type: 'company',
+    status: 'active',
+    startDate: '2025-03-01',
+    endDate: '2025-09-30',
+    userId: 'user3',
+    frequency: 'custom',
+    keyResults: [],
+    progress: 30,
+    createdAt: '2025-02-10',
+    updatedAt: '2025-05-18',
+  },
+  {
+    id: '4',
+    title: 'Improve Code Quality',
+    description: 'Reduce critical bugs by 50%',
+    type: 'team',
+    status: 'active',
+    startDate: '2025-02-15',
+    endDate: '2025-08-31',
+    userId: 'user4',
+    frequency: 'quarterly',
+    keyResults: [],
+    progress: 65,
+    createdAt: '2025-01-20',
+    updatedAt: '2025-05-12',
+  },
+  {
+    id: '5',
+    title: 'Team Training Program',
+    description: 'Train team on new technologies',
+    type: 'team',
+    status: 'draft',
+    startDate: '2025-04-01',
+    endDate: '2025-10-31',
+    userId: 'user5',
+    frequency: 'custom',
+    keyResults: [],
+    progress: 0,
+    createdAt: '2025-03-15',
+    updatedAt: '2025-05-01',
+  },
+];
+
 const { Option } = Select;
 
 const OkrListPage: React.FC = () => {
-  const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_, setError] = useState<string | null>(null);
+  const [okrs, setOkrs] = useState<Okr[]>([]);
   const [search, setSearch] = useState("");
-  // Status filter is now handled by filters.status
   const [pagination, setPagination] = useState<TablePaginationConfig>({
     current: 1,
     pageSize: 10,
@@ -42,66 +110,59 @@ const OkrListPage: React.FC = () => {
     showSizeChanger: true,
     pageSizeOptions: ["10", "20", "50", "100"],
   });
-
-  // Get filters from Redux store with proper type and default values
-  const reduxFilters = useSelector(selectOKRFilters) as
-    | OkrFilterParams
-    | undefined;
-  // Memoize filters to prevent unnecessary re-renders
-  const filters: OkrFilterParams = React.useMemo(
-    () =>
-      ({
-        ...(reduxFilters || {}),
-        page: reduxFilters?.page || 1,
-        limit: reduxFilters?.limit || 10,
-        search: reduxFilters?.search,
-        status: reduxFilters?.status,
-      } as OkrFilterParams),
-    [reduxFilters]
-  );
-  const okrs = useSelector(selectOKRs) as Okr[];
-  const loading = useSelector(selectOKRsLoading);
-  const error = useSelector(selectOKRsError);
-  const total = useSelector(selectTotalOKRs);
+  const [filters, setFilters] = useState<OkrFilterParams>({
+    page: 1,
+    limit: 10,
+    status: undefined,
+    type: undefined,
+  });
 
   useEffect(() => {
-    dispatch(fetchOKRs(filters));
-  }, [dispatch, filters]);
-
-  useEffect(() => {
-    if (error) {
-      message.error(error.toString());
-    }
-  }, [error]);
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        // Simulate API call
+        await new Promise(resolve => setTimeout(resolve, 500));
+        setOkrs(mockOkrs);
+      } catch (err) {
+        setError('Failed to load OKRs');
+        message.error('Failed to load OKRs');
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
 
   const handleSearchChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const value = e.target.value;
       setSearch(value);
-
-      // Create new filters without search and page to avoid circular dependencies
-      const { ...restFilters } = filters;
-
-      setPagination((prev) => ({ ...prev, current: 1 }));
-      dispatch(fetchOKRs({ ...restFilters, search: value, page: 1 }));
+      setPagination(prev => ({ ...prev, current: 1 }));
     },
-    [dispatch, filters]
+    []
   );
+
   const handleStatusChange = useCallback(
     (status: string) => {
-      // Create new filters without status and page to avoid circular dependencies
-      const { ...restFilters } = filters;
-
-      const updatedFilters: OkrFilterParams = {
-        ...restFilters,
-        status: status,
-        page: 1, // Reset to first page when changing status
-      };
-
-      setPagination((prev) => ({ ...prev, current: 1 }));
-      dispatch(fetchOKRs(updatedFilters));
+      setFilters(prev => ({
+        ...prev,
+        status: status as OkrStatus || undefined,
+      }));
+      setPagination(prev => ({ ...prev, current: 1 }));
     },
-    [dispatch, filters]
+    []
+  );
+
+  const handleTypeChange = useCallback(
+    (type: string) => {
+      setFilters(prev => ({
+        ...prev,
+        type: type as OkrType || undefined,
+      }));
+      setPagination(prev => ({ ...prev, current: 1 }));
+    },
+    []
   );
 
   const handleTableChange = useCallback(
@@ -109,16 +170,7 @@ const OkrListPage: React.FC = () => {
       const currentPage = newPagination.current || 1;
       const pageSize = newPagination.pageSize || 10;
 
-      // Create new filters without page and limit to avoid circular dependencies
-      const { ...restFilters } = filters;
-
-      const updatedFilters: OkrFilterParams = {
-        ...restFilters,
-        page: currentPage,
-        limit: pageSize,
-      };
-
-      // Only update pagination if the values have actually changed
+      // Update pagination state
       if (
         pagination.current !== currentPage ||
         pagination.pageSize !== pageSize
@@ -128,12 +180,42 @@ const OkrListPage: React.FC = () => {
           current: currentPage,
           pageSize: pageSize,
         }));
-
-        dispatch(fetchOKRs(updatedFilters));
       }
     },
-    [dispatch, filters, pagination]
+    [pagination]
   );
+
+  const filteredOkrs = useMemo(() => {
+    let result = [...okrs];
+
+    // Apply search filter
+    if (search) {
+      const searchLower = search.toLowerCase();
+      result = result.filter(okr =>
+        okr.title.toLowerCase().includes(searchLower) ||
+        (okr.description?.toLowerCase().includes(searchLower) || false)
+      );
+    }
+
+    // Apply status filter
+    if (filters.status) {
+      result = result.filter(okr => okr.status === filters.status);
+    }
+
+    // Apply type filter
+    if (filters.type) {
+      result = result.filter(okr => okr.type === filters.type);
+    }
+
+    // Apply pagination
+    const start = ((pagination.current || 1) - 1) * (pagination.pageSize || 10);
+    const end = start + (pagination.pageSize || 10);
+
+    return {
+      data: result.slice(start, end),
+      total: result.length
+    };
+  }, [search, filters.status, filters.type, pagination.current, pagination.pageSize, okrs]);
 
   const columns: ColumnsType<Okr> = [
     {
@@ -145,9 +227,16 @@ const OkrListPage: React.FC = () => {
       ),
     },
     {
+      title: "Type",
+      dataIndex: "type",
+      key: "type",
+      render: (type: string) => type.charAt(0).toUpperCase() + type.slice(1),
+    },
+    {
       title: "Owner",
-      dataIndex: ["owner", "name"],
+      dataIndex: "userId",
       key: "owner",
+      render: (userId: string) => mockUsers[userId]?.name || 'Unknown',
     },
     {
       title: "Status",
@@ -156,15 +245,15 @@ const OkrListPage: React.FC = () => {
       render: (status: string) => (
         <Badge
           status={
-            status === "Completed"
+            status === "completed"
               ? "success"
-              : status === "In Progress"
+              : status === "active"
               ? "processing"
-              : status === "At Risk"
-              ? "warning"
-              : "default"
+              : status === "draft"
+              ? "default"
+              : "warning"
           }
-          text={status}
+          text={status.charAt(0).toUpperCase() + status.slice(1)}
         />
       ),
     },
@@ -172,7 +261,7 @@ const OkrListPage: React.FC = () => {
       title: "Progress",
       dataIndex: "progress",
       key: "progress",
-      render: (progress: number) => `${progress}%`,
+      render: (progress?: number) => `${progress || 0}%`,
     },
     {
       title: "Start Date",
@@ -194,14 +283,14 @@ const OkrListPage: React.FC = () => {
           <Button
             type="link"
             size="small"
-            onClick={() => (window.location.href = `/okrs/${record.id}`)}
+            onClick={() => navigate(`/okrs/${record.id}`)}
           >
             View
           </Button>
           <Button
             type="link"
             size="small"
-            onClick={() => (window.location.href = `/okrs/${record.id}/edit`)}
+            onClick={() => navigate(`/okrs/${record.id}/edit`)}
           >
             Edit
           </Button>
@@ -213,9 +302,9 @@ const OkrListPage: React.FC = () => {
   return (
     <Card>
       <div className="flex justify-between items-center mb-4">
-        <Title level={4} className="mb-0">
+        <Typography.Title level={4} className="mb-0">
           OKRs
-        </Title>
+        </Typography.Title>
         <Button
           type="primary"
           icon={<PlusOutlined />}
@@ -232,7 +321,7 @@ const OkrListPage: React.FC = () => {
               placeholder="Search OKRs..."
               value={search}
               onChange={handleSearchChange}
-              style={{ width: 200, marginRight: 16 }}
+              style={{ width: '100%' }}
               allowClear
             />
           </Col>
@@ -240,10 +329,9 @@ const OkrListPage: React.FC = () => {
             <Select
               placeholder="Filter by status"
               allowClear
-              style={{ width: "100%" }}
+              style={{ width: '100%' }}
               onChange={handleStatusChange}
               value={filters.status}
-              defaultValue={undefined}
             >
               <Option value="draft">Draft</Option>
               <Option value="active">Active</Option>
@@ -251,20 +339,33 @@ const OkrListPage: React.FC = () => {
               <Option value="cancelled">Cancelled</Option>
             </Select>
           </Col>
+          <Col span={8}>
+            <Select
+              placeholder="Filter by type"
+              allowClear
+              style={{ width: '100%' }}
+              onChange={handleTypeChange}
+              value={filters.type}
+            >
+              <Option value="individual">Individual</Option>
+              <Option value="team">Team</Option>
+              <Option value="company">Company</Option>
+              <Option value="department">Department</Option>
+            </Select>
+          </Col>
         </Row>
       </div>
 
-      <Table<Okr>
+      <Table
         columns={columns}
-        dataSource={okrs || []}
+        dataSource={filteredOkrs.data}
         rowKey="id"
-        loading={loading as boolean}
+        loading={loading}
         pagination={{
-          current: pagination.current,
-          pageSize: pagination.pageSize,
-          total: total || 0,
-          showSizeChanger: true,
-          pageSizeOptions: ["10", "20", "50", "100"],
+          ...pagination,
+          total: filteredOkrs.total,
+          showTotal: (total) => `Total ${total} items`,
+          pageSizeOptions: ['10', '20', '50', '100'],
         }}
         onChange={handleTableChange}
       />

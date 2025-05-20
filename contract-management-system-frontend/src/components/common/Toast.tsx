@@ -1,5 +1,13 @@
-import { useEffect } from 'react';
 import { message } from 'antd';
+
+// Configure message defaults
+message.config({
+  top: 24,
+  duration: 3,
+  maxCount: 3,
+  rtl: false,
+  prefixCls: 'ant-message',
+});
 
 type ToastType = 'success' | 'error' | 'info' | 'warning' | 'loading';
 
@@ -11,28 +19,26 @@ interface ToastProps {
 }
 
 const Toast = ({ type, content, duration = 3, onClose }: ToastProps) => {
-  useEffect(() => {
-    message[type]({
-      content,
-      duration,
-      onClose,
-      className: 'custom-toast',
-      style: {
-        marginTop: '24px',
-      },
-    });
-  }, [type, content, duration, onClose]);
-
+  message[type]({
+    content,
+    duration,
+    onClose,
+    className: 'custom-toast',
+    style: {
+      marginTop: '24px',
+    },
+  });
+  
   return null;
 };
 
 export default Toast;
 
 // Helper functions for different toast types
-export const showToast = (type: ToastType, content: string, duration?: number) => {
+export const showToast = (type: ToastType, content: string, duration: number = 3) => {
   message[type]({
     content,
-    duration: duration || 3,
+    duration,
     className: 'custom-toast',
     style: {
       marginTop: '24px',

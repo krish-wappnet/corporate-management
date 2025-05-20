@@ -48,17 +48,19 @@ let OkrsService = class OkrsService {
                 userId: createOkrDto.userId || userId,
             });
             const savedOkr = await manager.save(okr);
-            const keyResults = createOkrDto.keyResults.map((krDto) => {
-                return manager.create(key_result_entity_1.KeyResult, {
-                    ...krDto,
-                    okrId: savedOkr.id,
-                    progress: 0,
-                    weight: krDto.weight || 1,
-                    startValue: krDto.startValue || 0,
-                    currentValue: krDto.currentValue || 0,
+            if (createOkrDto.keyResults && createOkrDto.keyResults.length > 0) {
+                const keyResults = createOkrDto.keyResults.map((krDto) => {
+                    return manager.create(key_result_entity_1.KeyResult, {
+                        ...krDto,
+                        okrId: savedOkr.id,
+                        progress: 0,
+                        weight: krDto.weight || 1,
+                        startValue: krDto.startValue || 0,
+                        currentValue: krDto.currentValue || 0,
+                    });
                 });
-            });
-            await manager.save(keyResults);
+                await manager.save(keyResults);
+            }
             return this.findOkrById(savedOkr.id);
         });
     }
@@ -200,14 +202,18 @@ let OkrsService = class OkrsService {
             }
         }
         await this.keyResultsRepository.save(updatedKeyResult);
-        await this.recalculateOkrProgress(keyResult.okrId);
+        if (keyResult.okrId) {
+            await this.recalculateOkrProgress(keyResult.okrId);
+        }
         return this.findKeyResultById(id);
     }
     async deleteKeyResult(id) {
         const keyResult = await this.findKeyResultById(id);
         const okrId = keyResult.okrId;
         await this.keyResultsRepository.remove(keyResult);
-        await this.recalculateOkrProgress(okrId);
+        if (okrId) {
+            await this.recalculateOkrProgress(okrId);
+        }
     }
     async createKeyResultUpdate(userId, createUpdateDto) {
         const keyResult = await this.findKeyResultById(createUpdateDto.keyResultId);
@@ -229,7 +235,9 @@ let OkrsService = class OkrsService {
             currentValue: createUpdateDto.value,
             progress,
         });
-        await this.recalculateOkrProgress(keyResult.okrId);
+        if (keyResult.okrId) {
+            await this.recalculateOkrProgress(keyResult.okrId);
+        }
         return savedUpdate;
     }
     async getKeyResultUpdates(keyResultId) {

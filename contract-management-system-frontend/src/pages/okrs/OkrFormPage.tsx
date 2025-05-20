@@ -742,7 +742,3 @@ const OkrFormPage: React.FC = () => {
 
 export default OkrFormPage;
 
-// Add any additional interfaces or types if needed
-// interface AdditionalType {
-//   // Add properties here
-// }

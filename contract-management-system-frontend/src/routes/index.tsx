@@ -39,10 +39,11 @@ import FeedbackReceived from "@/pages/feedback/FeedbackReceived";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
+  allowedRoles?: string[];
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { isAuthenticated, loading } = useAppSelector((state) => state.auth);
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles }) => {
+  const { isAuthenticated, loading, user } = useAppSelector((state) => state.auth);
   const location = useLocation();
 
   if (loading) {
@@ -55,6 +56,14 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Check if route has role restrictions
+  if (allowedRoles && allowedRoles.length > 0) {
+    const userRole = user?.role as string;
+    if (!userRole || !allowedRoles.includes(userRole)) {
+      return <Navigate to="/unauthorized" replace />;
+    }
   }
 
   return <>{children}</>;

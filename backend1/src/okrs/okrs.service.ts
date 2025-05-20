@@ -71,21 +71,23 @@ export class OkrsService {
       // Save OKR first
       const savedOkr = await manager.save(okr);
 
-      // Create and save key results
-      const keyResults = createOkrDto.keyResults.map((krDto: CreateKeyResultDto) => {
-        return manager.create(KeyResult, {
-          ...krDto,
-          okrId: savedOkr.id,
-          // Initialize progress
-          progress: 0,
-          // Set defaults if not provided
-          weight: krDto.weight || 1,
-          startValue: krDto.startValue || 0,
-          currentValue: krDto.currentValue || 0,
+      // Create and save key results if they exist
+      if (createOkrDto.keyResults && createOkrDto.keyResults.length > 0) {
+        const keyResults = createOkrDto.keyResults.map((krDto: CreateKeyResultDto) => {
+          return manager.create(KeyResult, {
+            ...krDto,
+            okrId: savedOkr.id,
+            // Initialize progress
+            progress: 0,
+            // Set defaults if not provided
+            weight: krDto.weight || 1,
+            startValue: krDto.startValue || 0,
+            currentValue: krDto.currentValue || 0,
+          });
         });
-      });
 
-      await manager.save(keyResults);
+        await manager.save(keyResults);
+      }
 
       // Return full OKR with key results
       return this.findOkrById(savedOkr.id);
@@ -290,8 +292,10 @@ export class OkrsService {
 
     await this.keyResultsRepository.save(updatedKeyResult);
 
-    // Recalculate OKR progress
-    await this.recalculateOkrProgress(keyResult.okrId);
+    // Recalculate OKR progress if okrId exists
+    if (keyResult.okrId) {
+      await this.recalculateOkrProgress(keyResult.okrId);
+    }
 
     return this.findKeyResultById(id);
   }
@@ -302,8 +306,10 @@ export class OkrsService {
     
     await this.keyResultsRepository.remove(keyResult);
     
-    // Recalculate OKR progress
-    await this.recalculateOkrProgress(okrId);
+    // Recalculate OKR progress if okrId exists
+    if (okrId) {
+      await this.recalculateOkrProgress(okrId);
+    }
   }
 
   // Key Result Update Methods
@@ -338,8 +344,10 @@ export class OkrsService {
       progress,
     });
 
-    // Recalculate OKR progress
-    await this.recalculateOkrProgress(keyResult.okrId);
+    // Recalculate OKR progress if okrId exists
+    if (keyResult.okrId) {
+      await this.recalculateOkrProgress(keyResult.okrId);
+    }
 
     return savedUpdate;
   }

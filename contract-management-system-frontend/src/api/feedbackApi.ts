@@ -106,7 +106,6 @@ export const deleteFeedback = async (id: string) => {
 export const getFeedbackCycles = async (params?: {
   status?: CycleStatus;
   type?: string;
-  active?: boolean;
   page?: number;
   limit?: number;
 }) => {

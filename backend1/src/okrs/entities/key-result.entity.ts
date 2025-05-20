@@ -55,8 +55,8 @@ export class KeyResult {
   @JoinColumn({ name: 'okr_id' })
   okr: Okr;
 
-  @Column()
-  okrId: string;
+  @Column({ type: 'uuid', nullable: true })
+  okrId: string | null;
 
   @OneToMany(() => KeyResultUpdate, (update) => update.keyResult, {
     cascade: true,

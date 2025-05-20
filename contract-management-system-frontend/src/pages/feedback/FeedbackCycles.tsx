@@ -60,7 +60,6 @@ const FeedbackCycles: React.FC = () => {
       const params = {
         ...(filters.status && { status: filters.status as CycleStatus }),
         ...(filters.type && { type: filters.type as CycleType }),
-        active: filters.active,
         page: page + 1,
         limit: rowsPerPage,
         ...(searchTerm && { search: searchTerm })
