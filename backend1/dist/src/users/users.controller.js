@@ -40,6 +40,9 @@ let UsersController = class UsersController {
     async getManagers(search) {
         return this.usersService.findManagers(search);
     }
+    async getUsersByDepartment(departmentName) {
+        return this.usersService.findByDepartment(departmentName);
+    }
     findOne(id) {
         return this.usersService.findOne(id);
     }
@@ -105,6 +108,19 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], UsersController.prototype, "getManagers", null);
+__decorate([
+    (0, common_1.Get)('department/:departmentName'),
+    (0, roles_decorator_1.Roles)(role_enum_1.Role.ADMIN, role_enum_1.Role.MANAGER, role_enum_1.Role.EMPLOYEE),
+    (0, swagger_1.ApiOperation)({ summary: 'Get all users in a specific department' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'List of users in the department retrieved successfully', type: [user_entity_1.User] }),
+    (0, swagger_1.ApiResponse)({ status: 400, description: 'Department name is required' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'Department not found' }),
+    (0, swagger_1.ApiResponse)({ status: 500, description: 'Failed to fetch users by department' }),
+    __param(0, (0, common_1.Param)('departmentName')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "getUsersByDepartment", null);
 __decorate([
     (0, common_1.Get)(':id'),
     (0, swagger_1.ApiOperation)({ summary: 'Get a user by ID' }),

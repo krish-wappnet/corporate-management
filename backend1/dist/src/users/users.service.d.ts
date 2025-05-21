@@ -19,5 +19,6 @@ export declare class UsersService {
     assignDirectReport(managerId: string, employeeId: string): Promise<User>;
     removeDirectReport(managerId: string, employeeId: string): Promise<User>;
     getDepartments(): Promise<string[]>;
+    findByDepartment(departmentName: string): Promise<User[]>;
     findManagers(search?: string): Promise<User[]>;
 }

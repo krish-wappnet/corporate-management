@@ -7,6 +7,7 @@ import Auth from "../components/auth/Auth";
 import Dashboard from "../pages/Dashboard";
 import EmployeesPage from "../pages/employees/EmployeesPage";
 import AddEmployeePage from "../pages/employees/AddEmployeePage";
+import DepartmentEmployeesPage from "../pages/employees/DepartmentEmployeesPage";
 import { KpiListPage, KpiFormPage, KpiDetailPage } from "../pages/kpis";
 import {
   DepartmentList,
@@ -46,7 +47,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
   const { isAuthenticated, loading, user } = useAppSelector((state) => state.auth);
   const location = useLocation();
 
+  console.log('ProtectedRoute - Auth state:', { isAuthenticated, loading, user, path: location.pathname });
+  console.log('Allowed roles for this route:', allowedRoles);
+  console.log('User roles:', user?.roles);
+
   if (loading) {
+    console.log('Loading auth state...');
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
@@ -55,17 +61,23 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
   }
 
   if (!isAuthenticated) {
+    console.log('Not authenticated, redirecting to login');
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   // Check if route has role restrictions
   if (allowedRoles && allowedRoles.length > 0) {
-    const userRole = user?.role as string;
-    if (!userRole || !allowedRoles.includes(userRole)) {
+    const userRoles = user?.roles || [];
+    const hasRequiredRole = userRoles.some(role => allowedRoles.includes(role));
+    console.log('Checking roles - User roles:', userRoles, 'Required roles:', allowedRoles, 'Has access:', hasRequiredRole);
+    
+    if (!hasRequiredRole) {
+      console.log('Access denied - Insufficient permissions');
       return <Navigate to="/unauthorized" replace />;
     }
   }
 
+  console.log('Access granted');
   return <>{children}</>;
 };
 
@@ -149,6 +161,17 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute>
             <Layout>
               <EmployeesPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/department/employees"
+        element={
+          <ProtectedRoute allowedRoles={['employee', 'manager', 'admin']}>
+            <Layout>
+              <DepartmentEmployeesPage />
             </Layout>
           </ProtectedRoute>
         }

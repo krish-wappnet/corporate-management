@@ -33,12 +33,17 @@ let JwtStrategy = class JwtStrategy extends (0, passport_1.PassportStrategy)(pas
     async validate(payload) {
         const user = await this.userRepository.findOne({
             where: { id: payload.sub },
-            select: ['id', 'email', 'roles']
+            select: ['id', 'email', 'roles', 'department']
         });
         if (!user) {
             throw new common_1.UnauthorizedException('User not found');
         }
-        return { userId: user.id, email: user.email, roles: user.roles };
+        return {
+            userId: user.id,
+            email: user.email,
+            roles: user.roles,
+            department: user.department
+        };
     }
 };
 exports.JwtStrategy = JwtStrategy;

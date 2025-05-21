@@ -9,21 +9,23 @@ export declare class AuthController {
     login(req: any, loginDto: LoginDto): Promise<{
         access_token: string;
         user: {
-            id: any;
-            email: any;
-            firstName: any;
-            lastName: any;
-            roles: any;
+            id: string;
+            email: string;
+            firstName: string;
+            lastName: string;
+            roles: import("../common/enums/role.enum").Role[];
+            department: string;
         };
     }>;
     register(registerDto: RegisterDto): Promise<{
         access_token: string;
         user: {
-            id: any;
-            email: any;
-            firstName: any;
-            lastName: any;
-            roles: any;
+            id: string;
+            email: string;
+            firstName: string;
+            lastName: string;
+            roles: import("../common/enums/role.enum").Role[];
+            department: string;
         };
     }>;
     getProfile(req: any): Promise<User>;

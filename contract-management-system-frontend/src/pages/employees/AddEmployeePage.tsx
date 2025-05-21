@@ -24,6 +24,7 @@ const AddEmployeePage: React.FC = () => {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [departmentsLoading, setDepartmentsLoading] = useState(false);
   const [departmentsError, setDepartmentsError] = useState<string | null>(null);
+  const [selectedRole, setSelectedRole] = useState<string>('');
 
   // Fetch departments from API
   useEffect(() => {
@@ -52,22 +53,34 @@ const AddEmployeePage: React.FC = () => {
     confirmPassword: string;
     role: string;
     position: string;
-    department: string;
+    department?: string; // Make department optional in the form
   }
 
   const onFinish = async (values: EmployeeFormValues) => {
     try {
       setLoading(true);
 
-      const userData = {
+      const userData: {
+        firstName: string;
+        lastName: string;
+        email: string;
+        password: string;
+        roles: string[];
+        position: string;
+        department?: string;
+      } = {
         firstName: values.firstName,
         lastName: values.lastName,
         email: values.email,
         password: values.password,
         roles: [values.role],
         position: values.position,
-        department: values.department, // Use department name or ID based on API requirements
       };
+
+      // Only include department if the role is not manager and department is provided
+      if (values.role !== 'manager' && values.department) {
+        userData.department = values.department;
+      }
 
       await dispatch(createUser(userData)).unwrap();
 
@@ -273,6 +286,13 @@ const AddEmployeePage: React.FC = () => {
                   placeholder="Select role"
                   className="border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:border-blue-500 transition-all text-gray-900 placeholder-gray-400 h-12"
                   dropdownClassName="rounded-lg shadow-md"
+                  onChange={(value) => {
+                    setSelectedRole(value);
+                    // Clear department when manager is selected
+                    if (value === 'manager') {
+                      form.setFieldsValue({ department: undefined });
+                    }
+                  }}
                 >
                   <Option value="employee">Employee</Option>
                   <Option value="manager">Manager</Option>
@@ -306,11 +326,14 @@ const AddEmployeePage: React.FC = () => {
               <Form.Item
                 name="department"
                 label={
-                  <span className="text-gray-700 font-semibold text-sm">Department</span>
+                  <span className="text-gray-700 font-semibold text-sm">
+                    Department
+                    {selectedRole === 'manager' && ' (Optional for Managers)'}
+                  </span>
                 }
                 rules={[
                   {
-                    required: true,
+                    required: selectedRole !== 'manager',
                     message: (
                       <span className="text-red-500 text-xs">
                         Please select a department
@@ -321,9 +344,9 @@ const AddEmployeePage: React.FC = () => {
                 className="md:col-span-2 space-y-1"
               >
                 <Select
-                  placeholder="Select department"
+                  placeholder={selectedRole === 'manager' ? 'Optional for managers' : 'Select department'}
                   loading={departmentsLoading}
-                  disabled={departmentsLoading || !!departmentsError}
+                  disabled={departmentsLoading || !!departmentsError || selectedRole === 'manager'}
                   className="border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:border-blue-500 transition-all text-gray-900 placeholder-gray-400 h-12"
                   dropdownClassName="rounded-lg shadow-md"
                 >
@@ -335,6 +358,11 @@ const AddEmployeePage: React.FC = () => {
                 </Select>
                 {departmentsError && (
                   <span className="text-red-500 text-xs">{departmentsError}</span>
+                )}
+                {selectedRole === 'manager' && (
+                  <span className="text-gray-500 text-xs block mt-1">
+                    Managers don't require a department
+                  </span>
                 )}
               </Form.Item>
             </div>

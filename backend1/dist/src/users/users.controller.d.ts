@@ -11,6 +11,7 @@ export declare class UsersController {
     findAll(paginationDto: PaginationDto, department?: string): Promise<PaginationResponseDto<User>>;
     getDepartments(): Promise<string[]>;
     getManagers(search?: string): Promise<User[]>;
+    getUsersByDepartment(departmentName: string): Promise<User[]>;
     findOne(id: string): Promise<User>;
     update(id: string, updateUserDto: UpdateUserDto): Promise<User>;
     remove(id: string): Promise<void>;

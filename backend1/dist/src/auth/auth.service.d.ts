@@ -7,24 +7,26 @@ export declare class AuthService {
     private jwtService;
     constructor(usersService: UsersService, jwtService: JwtService);
     validateUser(email: string, password: string): Promise<any>;
-    login(user: any): Promise<{
+    login(user: User): Promise<{
         access_token: string;
         user: {
-            id: any;
-            email: any;
-            firstName: any;
-            lastName: any;
-            roles: any;
+            id: string;
+            email: string;
+            firstName: string;
+            lastName: string;
+            roles: import("../common/enums/role.enum").Role[];
+            department: string;
         };
     }>;
     register(registerDto: RegisterDto): Promise<{
         access_token: string;
         user: {
-            id: any;
-            email: any;
-            firstName: any;
-            lastName: any;
-            roles: any;
+            id: string;
+            email: string;
+            firstName: string;
+            lastName: string;
+            roles: import("../common/enums/role.enum").Role[];
+            department: string;
         };
     }>;
     getUserProfile(userId: string): Promise<User>;

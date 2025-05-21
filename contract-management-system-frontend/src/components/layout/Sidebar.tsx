@@ -30,7 +30,7 @@ const navItems: NavItem[] = [
     title: "Employees",
     path: "/employees",
     icon: Users,
-    roles: ["admin", "manager"],
+    roles: ["admin", "manager", "employee"],
     children: [
       {
         title: "All Employees",
@@ -42,7 +42,13 @@ const navItems: NavItem[] = [
         title: "Add Employee",
         path: "/employees/new",
         icon: Users,
-        roles: ["admin","manager"],
+        roles: ["admin", "manager"],
+      },
+      {
+        title: "My Department",
+        path: "/department/employees",
+        icon: Users,
+        roles: ["employee", "manager"],
       },
     ],
   },

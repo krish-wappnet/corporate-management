@@ -8,6 +8,7 @@ import {
   Delete,
   Query,
   UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -72,6 +73,17 @@ export class UsersController {
   @ApiQuery({ name: 'search', required: false })
   async getManagers(@Query('search') search?: string): Promise<User[]> {
     return this.usersService.findManagers(search);
+  }
+
+  @Get('department/:departmentName')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.EMPLOYEE)
+  @ApiOperation({ summary: 'Get all users in a specific department' })
+  @ApiResponse({ status: 200, description: 'List of users in the department retrieved successfully', type: [User] })
+  @ApiResponse({ status: 400, description: 'Department name is required' })
+  @ApiResponse({ status: 404, description: 'Department not found' })
+  @ApiResponse({ status: 500, description: 'Failed to fetch users by department' })
+  async getUsersByDepartment(@Param('departmentName') departmentName: string): Promise<User[]> {
+    return this.usersService.findByDepartment(departmentName);
   }
 
   @Get(':id')

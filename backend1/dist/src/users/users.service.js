@@ -73,9 +73,13 @@ let UsersService = UsersService_1 = class UsersService {
         if (existingUser) {
             throw new common_1.ConflictException('User with this email already exists');
         }
+        const isManager = createUserDto.roles?.includes(role_enum_1.Role.MANAGER);
+        if (!isManager && !createUserDto.department) {
+            throw new common_1.BadRequestException('Department is required for non-manager users');
+        }
         const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
         let managerId = null;
-        if (createUserDto.roles?.includes(role_enum_1.Role.MANAGER)) {
+        if (isManager) {
             managerId = this.generateManagerId(createUserDto.firstName, createUserDto.lastName);
             let isUnique = false;
             let attempts = 0;
@@ -94,6 +98,9 @@ let UsersService = UsersService_1 = class UsersService {
             }
             if (!isUnique || !managerId) {
                 throw new common_1.InternalServerErrorException('Could not generate a unique manager ID');
+            }
+            if (createUserDto.department) {
+                delete createUserDto.department;
             }
         }
         try {
@@ -178,9 +185,16 @@ let UsersService = UsersService_1 = class UsersService {
         if (updateUserDto.password) {
             updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
         }
-        const isBecomingManager = updateUserDto.roles?.includes(role_enum_1.Role.MANAGER) && !user.roles.includes(role_enum_1.Role.MANAGER);
-        const isRemovingManager = user.roles.includes(role_enum_1.Role.MANAGER) &&
-            (!updateUserDto.roles || !updateUserDto.roles.includes(role_enum_1.Role.MANAGER));
+        const currentRoles = updateUserDto.roles || user.roles;
+        const isManager = currentRoles.includes(role_enum_1.Role.MANAGER);
+        const isBecomingManager = isManager && !user.roles.includes(role_enum_1.Role.MANAGER);
+        const isRemovingManager = user.roles.includes(role_enum_1.Role.MANAGER) && !isManager;
+        if (isManager && updateUserDto.department) {
+            delete updateUserDto.department;
+        }
+        else if (!isManager && !updateUserDto.department && !user.department) {
+            throw new common_1.BadRequestException('Department is required for non-manager users');
+        }
         if (isBecomingManager && !user.managerId) {
             let managerId = this.generateManagerId(updateUserDto.firstName || user.firstName, updateUserDto.lastName || user.lastName);
             let isUnique = false;
@@ -202,9 +216,13 @@ let UsersService = UsersService_1 = class UsersService {
                 throw new common_1.InternalServerErrorException('Could not generate a unique manager ID');
             }
             updateUserDto.managerId = managerId;
+            updateUserDto.department = undefined;
         }
         else if (isRemovingManager) {
             updateUserDto.managerId = null;
+            if (!updateUserDto.department && !user.department) {
+                throw new common_1.BadRequestException('Department is required when removing manager role');
+            }
         }
         try {
             const updatedUser = this.usersRepository.merge(user, updateUserDto);
@@ -292,17 +310,30 @@ let UsersService = UsersService_1 = class UsersService {
         }
     }
     async getDepartments() {
+        const users = await this.usersRepository.find({
+            select: ['department'],
+            where: { department: (0, typeorm_2.Not)((0, typeorm_2.IsNull)()) },
+        });
+        const departments = [...new Set(users.map(user => user.department).filter(Boolean))];
+        return departments.sort();
+    }
+    async findByDepartment(departmentName) {
         try {
+            if (!departmentName) {
+                throw new common_1.BadRequestException('Department name is required');
+            }
             const users = await this.usersRepository.find({
-                select: ['department'],
-                where: { department: (0, typeorm_2.Not)((0, typeorm_2.IsNull)()) },
+                where: { department: (0, typeorm_2.ILike)(`%${departmentName}%`) },
+                select: ['id', 'firstName', 'lastName', 'email', 'roles', 'position', 'department', 'managerId', 'createdAt', 'updatedAt']
             });
-            const departments = [...new Set(users.map((user) => user.department))];
-            return departments.filter((dept) => dept !== null);
+            return users;
         }
         catch (error) {
-            this.logger.error(`Error fetching departments: ${error.message}`, error.stack);
-            throw new common_1.InternalServerErrorException('Error fetching departments');
+            this.logger.error(`Error finding users by department: ${error.message}`, error.stack);
+            if (error instanceof common_1.BadRequestException) {
+                throw error;
+            }
+            throw new common_1.InternalServerErrorException('Error finding users by department');
         }
     }
     async findManagers(search) {

@@ -51,12 +51,18 @@ export class UsersService {
       throw new ConflictException('User with this email already exists');
     }
 
+    // Validate department is provided for non-manager users
+    const isManager = createUserDto.roles?.includes(Role.MANAGER);
+    if (!isManager && !createUserDto.department) {
+      throw new BadRequestException('Department is required for non-manager users');
+    }
+
     // Hash password
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
 
     // Generate managerId if user is a manager
     let managerId: string | null = null;
-    if (createUserDto.roles?.includes(Role.MANAGER)) {
+    if (isManager) {
       managerId = this.generateManagerId(createUserDto.firstName, createUserDto.lastName);
       
       // Ensure the generated manager ID is unique
@@ -80,6 +86,11 @@ export class UsersService {
       
       if (!isUnique || !managerId) {
         throw new InternalServerErrorException('Could not generate a unique manager ID');
+      }
+
+      // Clear department for managers if provided
+      if (createUserDto.department) {
+        delete createUserDto.department;
       }
     }
 
@@ -187,9 +198,18 @@ export class UsersService {
     }
 
     // Check if roles are being updated
-    const isBecomingManager = updateUserDto.roles?.includes(Role.MANAGER) && !user.roles.includes(Role.MANAGER);
-    const isRemovingManager = user.roles.includes(Role.MANAGER) && 
-      (!updateUserDto.roles || !updateUserDto.roles.includes(Role.MANAGER));
+    const currentRoles = updateUserDto.roles || user.roles;
+    const isManager = currentRoles.includes(Role.MANAGER);
+    const isBecomingManager = isManager && !user.roles.includes(Role.MANAGER);
+    const isRemovingManager = user.roles.includes(Role.MANAGER) && !isManager;
+
+    // If user is a manager, ensure department is not set
+    if (isManager && updateUserDto.department) {
+      delete updateUserDto.department;
+    } else if (!isManager && !updateUserDto.department && !user.department) {
+      // If user is not a manager and no department is provided, require it
+      throw new BadRequestException('Department is required for non-manager users');
+    }
 
     // Generate managerId if user is becoming a manager
     if (isBecomingManager && !user.managerId) {
@@ -225,9 +245,17 @@ export class UsersService {
       }
 
       updateUserDto.managerId = managerId;
+      
+      // Clear department when becoming a manager
+      updateUserDto.department = undefined;
     } else if (isRemovingManager) {
       // Clear managerId if user is no longer a manager
       updateUserDto.managerId = null;
+      
+      // Require department when removing manager role
+      if (!updateUserDto.department && !user.department) {
+        throw new BadRequestException('Department is required when removing manager role');
+      }
     }
 
     try {
@@ -338,18 +366,39 @@ export class UsersService {
   }
 
   async getDepartments(): Promise<string[]> {
-    try {
-      const users = await this.usersRepository.find({
-        select: ['department'],
-        where: { department: Not(IsNull()) },
-      });
+    const users = await this.usersRepository.find({
+      select: ['department'],
+      where: { department: Not(IsNull()) },
+    });
 
-      // Extract unique department names
-      const departments = [...new Set(users.map((user) => user.department))];
-      return departments.filter((dept): dept is string => dept !== null);
+    // Extract unique department names
+    const departments = [...new Set(users.map(user => user.department).filter(Boolean))];
+    return departments.sort();
+  }
+
+  /**
+   * Find all users by department name
+   * @param departmentName The name of the department
+   * @returns Array of users in the specified department
+   */
+  async findByDepartment(departmentName: string): Promise<User[]> {
+    try {
+      if (!departmentName) {
+        throw new BadRequestException('Department name is required');
+      }
+
+      const users = await this.usersRepository.find({
+        where: { department: ILike(`%${departmentName}%`) },
+        select: ['id', 'firstName', 'lastName', 'email', 'roles', 'position', 'department', 'managerId', 'createdAt', 'updatedAt']
+      });
+      
+      return users;
     } catch (error) {
-      this.logger.error(`Error fetching departments: ${error.message}`, error.stack);
-      throw new InternalServerErrorException('Error fetching departments');
+      this.logger.error(`Error finding users by department: ${error.message}`, error.stack);
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Error finding users by department');
     }
   }
 

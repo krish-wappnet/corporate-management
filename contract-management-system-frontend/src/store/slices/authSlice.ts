@@ -16,9 +16,10 @@ export interface User {
   firstName: string;
   lastName: string;
   email: string;
-  position?: string;
-  department?: string;
-  role: "admin" | "user"; // Add role property
+  position: string;
+  department: string;
+  role: string;
+  roles: string[];
 }
 
 const isTokenExpired = (token: string | null): boolean => {
@@ -175,7 +176,7 @@ export const logout = createAsyncThunk<boolean, void, { state: RootState }>(
       localStorage.removeItem("user");
       setToken("");
       return true;
-    } catch (error : unknown) {
+    } catch (error: any) {
       console.error("Logout error:", error);
       return rejectWithValue(
         error.response?.data?.message || "Failed to log out"
