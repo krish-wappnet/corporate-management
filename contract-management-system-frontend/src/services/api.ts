@@ -36,7 +36,7 @@ export const removeToken = (): void => {
 
 // Create an axios instance with default config
 const api: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
+  baseURL: import.meta.env.VITE_API_URL || 'https://cpm-backend-3dd5.onrender.com',
   headers: {
     'Content-Type': 'application/json',
   },
