@@ -59,9 +59,10 @@ let OkrsService = class OkrsService {
                         currentValue: krDto.currentValue || 0,
                     });
                 });
-                await manager.save(keyResults);
+                const savedKeyResults = await manager.save(keyResults);
+                savedOkr.keyResults = savedKeyResults;
             }
-            return this.findOkrById(savedOkr.id);
+            return savedOkr;
         });
     }
     async findAllOkrs(paginationDto = { page: 1, limit: 10 }, filters) {

@@ -1,407 +1,340 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { 
-  Box, 
-  Button, 
-  Card, 
-  CardContent, 
-  Chip, 
-  FormControl, 
-  IconButton, 
-  InputLabel, 
-  MenuItem, 
-  Select, 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableContainer, 
-  TableHead, 
-  TablePagination, 
-  TableRow, 
-  TextField, 
-  Typography,
-  Avatar,
-  Tooltip,
-  InputAdornment
-} from '@mui/material';
-import type { SelectChangeEvent } from '@mui/material/Select';
-import { 
-  Add as AddIcon, 
-  Search as SearchIcon, 
-  Visibility as VisibilityIcon,
-  Check as CheckIcon,
-  Close as CloseIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon
-} from '@mui/icons-material';
-import { useAuth } from '../../hooks/useAuth';
-import { getFeedbackRequests } from '../../api/feedbackApi';
-import type { FeedbackRequest, RequestStatus } from '../../types/feedback.types';
-import { FeedbackType } from '../../types/feedback.types';
-import { formatDistanceToNow } from 'date-fns';
-
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../hooks/useAuth";
+import { getFeedbackRequests } from "../../api/feedbackApi";
+import type { FeedbackRequest, RequestStatus } from "../../types/feedback.types";
+import { FeedbackType } from "../../types/feedback.types";
+import { formatDistanceToNow } from "date-fns";
+ 
+// Ant Design Icons
+import {
+  PlusOutlined,
+  EyeOutlined,
+  CheckOutlined,
+  CloseOutlined,
+  EditOutlined,
+  DeleteOutlined,
+} from "@ant-design/icons";
+ 
 const FeedbackRequests: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  
+ 
   const [requests, setRequests] = useState<FeedbackRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [total, setTotal] = useState(0);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filters, setFilters] = useState({
-    search: '',
-    type: '' as FeedbackType | '',
-    status: '' as RequestStatus | '',
-    requesterId: '',
-    recipientId: '',
-    subjectId: '',
-    cycleId: ''
-  });
-
-  const fetchRequests = async () => {
+ 
+  const fetchRequests = React.useCallback(async () => {
     try {
       setLoading(true);
       const params = {
         page: page + 1,
         limit: rowsPerPage,
-        ...(searchTerm && { search: searchTerm }),
-        ...(filters.status && { status: filters.status }),
-        ...(filters.type && { type: filters.type }),
-        ...(filters.requesterId && { requesterId: filters.requesterId }),
-        ...(filters.recipientId && { recipientId: filters.recipientId }),
-        ...(filters.subjectId && { subjectId: filters.subjectId }),
-        ...(filters.cycleId && { cycleId: filters.cycleId }),
       };
-      
+ 
       const data = await getFeedbackRequests(params);
       setRequests(data.items);
       setTotal(data.total);
     } catch (error) {
-      console.error('Error fetching feedback requests:', error);
+      console.error("Error fetching feedback requests:", error);
     } finally {
       setLoading(false);
     }
-  };
-
+  }, [page, rowsPerPage]);
+ 
   useEffect(() => {
     fetchRequests();
-  }, [page, rowsPerPage, filters]);
-
+  }, [fetchRequests]);
+ 
   const handleChangePage = (_: unknown, newPage: number) => {
     setPage(newPage);
   };
-
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+ 
+  const handleChangeRowsPerPage = (
+    event: React.ChangeEvent<HTMLSelectElement>
+  ) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
-
-  const handleTypeFilterChange = (event: SelectChangeEvent<FeedbackType | ''>) => {
-    setFilters(prev => ({
-      ...prev,
-      type: event.target.value as FeedbackType | ''
-    }));
-    setPage(0);
-  };
-
-  const handleStatusFilterChange = (event: SelectChangeEvent<RequestStatus | ''>) => {
-    setFilters(prev => ({
-      ...prev,
-      status: event.target.value as RequestStatus | ''
-    }));
-    setPage(0);
-  };
-
-  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(event.target.value);
-  };
-
+ 
   const getStatusColor = (status: RequestStatus) => {
     switch (status) {
-      case 'pending':
-        return 'warning';
-      case 'completed':
-        return 'success';
-      case 'declined':
-        return 'error';
-      case 'expired':
-        return 'default';
+      case "pending":
+        return "bg-yellow-100 text-yellow-800 border-yellow-300";
+      case "completed":
+        return "bg-green-100 text-green-800 border-green-300";
+      case "declined":
+        return "bg-red-100 text-red-800 border-red-300";
+      case "expired":
+        return "bg-gray-100 text-gray-800 border-gray-300";
       default:
-        return 'default';
+        return "bg-gray-100 text-gray-800 border-gray-300";
     }
   };
-
+ 
   const getTypeLabel = (type: FeedbackType): string => {
     switch (type) {
       case FeedbackType.PEER:
-        return 'Peer';
+        return "Peer";
       case FeedbackType.MANAGER:
-        return 'Manager';
+        return "Manager";
       case FeedbackType.SELF:
-        return 'Self';
+        return "Self";
       case FeedbackType.UPWARD:
-        return 'Upward';
+        return "Upward";
       case FeedbackType.THREE_SIXTY:
-        return '360°';
+        return "360°";
       default:
         return type;
     }
   };
-
-  const getStatusLabel = (status: RequestStatus): string => {
-    return status.charAt(0).toUpperCase() + status.slice(1);
-  };
-
+ 
   const handleRespondToRequest = async (requestId: string, accept: boolean) => {
     try {
-      // Implement API call to respond to request
-      console.log(`Request ${requestId} ${accept ? 'accepted' : 'declined'}`);
-      // await respondToFeedbackRequest(requestId, accept);
+      console.log(`Request ${requestId} ${accept ? "accepted" : "declined"}`);
       fetchRequests(); // Refresh the list
     } catch (error) {
-      console.error('Error responding to request:', error);
+      console.error("Error responding to request:", error);
     }
   };
-
+ 
   return (
-    <Box>
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Box>
-          <Typography variant="h4" component="h1" gutterBottom>
+    <div className="p-6">
+      {/* Header Section */}
+      <div className="mb-6 flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">
             Feedback Requests
-          </Typography>
-          <Typography variant="body1" color="textSecondary">
-            View and manage feedback requests
-          </Typography>
-        </Box>
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<AddIcon />}
-          onClick={() => navigate('/feedback/requests/new')}
+          </h1>
+          <p className="text-gray-600">View and manage feedback requests</p>
+        </div>
+        <button
+          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+          onClick={() => navigate("/feedback/requests/new")}
         >
-          New Request
-        </Button>
-      </Box>
-
-      <Card sx={{ mb: 4 }}>
-        <CardContent>
-          <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-            <TextField
-              variant="outlined"
-              size="small"
-              placeholder="Search requests..."
-              value={searchTerm}
-              onChange={handleSearchChange}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-            />
-            <FormControl variant="outlined" size="small" sx={{ minWidth: 150 }}>
-              <InputLabel>Type</InputLabel>
-              <Select
-                value={filters.type}
-                onChange={handleTypeFilterChange}
-                label="Type"
-                size="small"
-              >
-                <MenuItem value="">All Types</MenuItem>
-                {Object.entries(FeedbackType).map(([key, value]) => (
-                  <MenuItem key={key} value={value}>
-                    {value}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl variant="outlined" size="small" sx={{ minWidth: 150 }}>
-              <InputLabel>Status</InputLabel>
-              <Select
-                value={filters.status}
-                onChange={handleStatusFilterChange}
-                label="Status"
-                size="small"
-              >
-                <MenuItem value="">All Statuses</MenuItem>
-                {['pending', 'completed', 'declined', 'expired'].map((status) => (
-                  <MenuItem key={status} value={status}>
-                    {getStatusLabel(status as RequestStatus)}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Box>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Request</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell>Subject</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Due Date</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
+          <PlusOutlined className="mr-2" /> New Request
+        </button>
+      </div>
+ 
+      {/* Table Card */}
+      <div className="bg-white shadow-md rounded-lg overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Request
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Type
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Subject
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Due Date
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
-                <TableRow>
-                  <TableCell colSpan={6} align="center">
+                <tr>
+                  <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
                     Loading...
-                  </TableCell>
-                </TableRow>
+                  </td>
+                </tr>
               ) : requests.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} align="center">
+                <tr>
+                  <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
                     No feedback requests found
-                  </TableCell>
-                </TableRow>
+                  </td>
+                </tr>
               ) : (
                 requests.map((request) => (
-                  <TableRow key={request.id} hover>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Avatar 
-                          src={request.requester?.avatar} 
-                          sx={{ width: 32, height: 32, mr: 1 }}
-                        >
-                          {request.requester?.firstName?.charAt(0)}
-                        </Avatar>
-                        <Box>
-                          <Typography variant="subtitle2">
-                            {request.requester?.firstName} {request.requester?.lastName}
-                          </Typography>
-                          <Typography variant="caption" color="textSecondary">
-                            requested feedback {formatDistanceToNow(new Date(request.createdAt), { addSuffix: true })}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Chip 
-                        label={getTypeLabel(request.type)} 
-                        size="small"
-                        variant="outlined"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Avatar 
-                          src={request.subject?.avatar} 
-                          sx={{ width: 32, height: 32, mr: 1 }}
-                        >
-                          {request.subject?.firstName?.charAt(0)}
-                        </Avatar>
-                        <Box>
-                          <Typography variant="subtitle2">
-                            {request.subject?.firstName} {request.subject?.lastName}
-                          </Typography>
-                          <Typography variant="caption" color="textSecondary">
+                  <tr key={request.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center">
+                        <img
+                          src={request.requester?.avatar}
+                          alt=""
+                          className="w-8 h-8 rounded-full mr-2"
+                          onError={(e) => {
+                            e.currentTarget.src = `https://ui-avatars.com/api/?name=${request.requester?.firstName}&size=32`;
+                          }}
+                        />
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">
+                            {request.requester?.firstName}{" "}
+                            {request.requester?.lastName}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            requested feedback{" "}
+                            {formatDistanceToNow(new Date(request.createdAt), {
+                              addSuffix: true,
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(
+                          request.status
+                        )}`}
+                      >
+                        {getTypeLabel(request.type)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center">
+                        <img
+                          src={request.subject?.avatar}
+                          alt=""
+                          className="w-8 h-8 rounded-full mr-2"
+                          onError={(e) => {
+                            e.currentTarget.src = `https://ui-avatars.com/api/?name=${request.subject?.firstName}&size=32`;
+                          }}
+                        />
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">
+                            {request.subject?.firstName}{" "}
+                            {request.subject?.lastName}
+                          </p>
+                          <p className="text-xs text-gray-500">
                             {request.subject?.position}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Chip 
-                        label={request.status} 
-                        color={getStatusColor(request.status) as any}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {new Date(request.dueDate).toLocaleDateString()}
-                      <Typography variant="caption" display="block" color="textSecondary">
-                        {new Date(request.dueDate) < new Date() && request.status === 'pending'
-                          ? 'Overdue'
-                          : `in ${formatDistanceToNow(new Date(request.dueDate), { addSuffix: true })}`
-                        }
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', gap: 1 }}>
-                        <Tooltip title="View Details">
-                          <IconButton 
-                            size="small" 
-                            onClick={() => navigate(`/feedback/requests/${request.id}`)}
-                          >
-                            <VisibilityIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        
-                        {request.status === 'pending' && request.recipientId === user?.id && (
-                          <>
-                            <Tooltip title="Accept Request">
-                              <IconButton 
-                                size="small" 
-                                color="success"
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(
+                          request.status
+                        )}`}
+                      >
+                        {request.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <p className="text-sm text-gray-900">
+                        {new Date(request.dueDate).toLocaleDateString()}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(request.dueDate) < new Date() &&
+                        request.status === "pending"
+                          ? "Overdue"
+                          : `in ${formatDistanceToNow(
+                              new Date(request.dueDate),
+                              { addSuffix: true }
+                            )}`}
+                      </p>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex gap-2">
+                        <button
+                          className="text-gray-500 hover:text-gray-700"
+                          title="View Details"
+                          onClick={() => navigate(`/feedback/requests/${request.id}`)}
+                        >
+                          <EyeOutlined className="w-5 h-5" />
+                        </button>
+ 
+                        {request.status === "pending" &&
+                          request.recipientId === user?.id && (
+                            <>
+                              <button
+                                className="text-green-500 hover:text-green-700"
+                                title="Accept Request"
                                 onClick={() => handleRespondToRequest(request.id, true)}
                               >
-                                <CheckIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Decline Request">
-                              <IconButton 
-                                size="small" 
-                                color="error"
+                                <CheckOutlined className="w-5 h-5" />
+                              </button>
+                              <button
+                                className="text-red-500 hover:text-red-700"
+                                title="Decline Request"
                                 onClick={() => handleRespondToRequest(request.id, false)}
                               >
-                                <CloseIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          </>
-                        )}
-                        
-                        {request.status === 'pending' && request.requesterId === user?.id && (
-                          <>
-                            <Tooltip title="Edit">
-                              <IconButton 
-                                size="small"
-                                onClick={() => navigate(`/feedback/requests/${request.id}/edit`)}
+                                <CloseOutlined className="w-5 h-5" />
+                              </button>
+                            </>
+                          )}
+ 
+                        {request.status === "pending" &&
+                          request.requesterId === user?.id && (
+                            <>
+                              <button
+                                className="text-blue-500 hover:text-blue-700"
+                                title="Edit"
+                                onClick={() =>
+                                  navigate(`/feedback/requests/${request.id}/edit`)
+                                }
                               >
-                                <EditIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Delete">
-                              <IconButton 
-                                size="small"
-                                color="error"
+                                <EditOutlined className="w-5 h-5" />
+                              </button>
+                              <button
+                                className="text-red-500 hover:text-red-700"
+                                title="Delete"
                                 onClick={() => {}}
                               >
-                                <DeleteIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          </>
-                        )}
-                      </Box>
-                    </TableCell>
-                  </TableRow>
+                                <DeleteOutlined className="w-5 h-5" />
+                              </button>
+                            </>
+                          )}
+                      </div>
+                    </td>
+                  </tr>
                 ))
               )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25]}
-          component="div"
-          count={total}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-        />
-      </Card>
-    </Box>
+            </tbody>
+          </table>
+        </div>
+ 
+        {/* Pagination */}
+        <div className="flex justify-between items-center p-4 border-t border-gray-200">
+          <div>
+            <select
+              value={rowsPerPage}
+              onChange={handleChangeRowsPerPage}
+              className="px-2 py-1 border rounded text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {[5, 10, 25].map((option) => (
+                <option key={option} value={option}>
+                  {option} per page
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex gap-2">
+            <button
+              className="px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 disabled:opacity-50"
+              disabled={page === 0}
+              onClick={() => handleChangePage(null, page - 1)}
+            >
+              Previous
+            </button>
+            <span className="text-sm text-gray-700">
+              Page {page + 1} of {Math.ceil(total / rowsPerPage)}
+            </span>
+            <button
+              className="px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 disabled:opacity-50"
+              disabled={page >= Math.ceil(total / rowsPerPage) - 1}
+              onClick={() => handleChangePage(null, page + 1)}
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
-
+ 
 export default FeedbackRequests;

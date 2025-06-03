@@ -7,9 +7,9 @@ import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import api from '../../services/api';
 import { createFeedbackRequest, updateFeedbackRequest } from '../../api/feedbackApi';
-
+ 
 const { Option } = Select;
-
+ 
 interface User {
   id: string;
   name: string;
@@ -19,12 +19,12 @@ interface User {
   lastName?: string;
   avatar?: string;
 }
-
+ 
 type FeedbackType = 'peer' | 'manager' | 'self' | 'upward' | '360';
 type RequestStatus = 'pending' | 'in-progress' | 'completed' | 'cancelled';
-
+ 
 // Feedback type definitions
-
+ 
 interface FeedbackFormValues {
   type: FeedbackType;
   recipientId: string;
@@ -35,13 +35,13 @@ interface FeedbackFormValues {
   status: RequestStatus;
   cycleId?: string;
 }
-
+ 
 const FeedbackRequestForm: React.FC = () => {
   const { user: currentUser, loading: loadingUser } = useAuth();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [form] = Form.useForm<FeedbackFormValues>();
-  
+ 
   const initialValues: Partial<FeedbackFormValues> = {
     type: 'peer' as const,
     status: 'pending' as const,
@@ -51,7 +51,7 @@ const FeedbackRequestForm: React.FC = () => {
     message: '',
     cycleId: undefined
   };
-  
+ 
   interface FeedbackCycle {
     id: string;
     name: string;
@@ -67,14 +67,14 @@ const FeedbackRequestForm: React.FC = () => {
     createdAt: string;
     updatedAt: string;
   }
-
+ 
   const [employees, setEmployees] = useState<User[]>([]);
   const [cycles, setCycles] = useState<FeedbackCycle[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingCycles, setIsLoadingCycles] = useState(false);
   const [isFormLoading, setIsFormLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
-
+ 
   const fetchEmployees = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -84,7 +84,7 @@ const FeedbackRequestForm: React.FC = () => {
           limit: 100
         }
       });
-      
+     
       if (response.data?.items) {
         setEmployees(response.data.items);
       }
@@ -95,7 +95,7 @@ const FeedbackRequestForm: React.FC = () => {
       setIsLoading(false);
     }
   }, []);
-
+ 
   const fetchCycles = useCallback(async () => {
     try {
       setIsLoadingCycles(true);
@@ -118,31 +118,50 @@ const FeedbackRequestForm: React.FC = () => {
       setIsLoadingCycles(false);
     }
   }, []);
-
+ 
   useEffect(() => {
     if (currentUser?.id) {
       fetchEmployees();
       fetchCycles();
-      form.setFieldsValue({ 
+      form.setFieldsValue({
         subjectId: currentUser.id,
         requesterId: currentUser.id
       });
     }
   }, [currentUser?.id, form, fetchEmployees, fetchCycles]);
-
-  if (!currentUser) {
-    return null;
-  }
-
+ 
+  const handleSelfFeedbackChange = useCallback((checked: boolean) => {
+    if (checked) {
+      form.setFieldsValue({
+        recipientId: currentUser?.id,
+        type: 'self' as const
+      });
+    } else {
+      form.setFieldsValue({
+        recipientId: undefined,
+        type: 'peer' as const
+      });
+    }
+  }, [currentUser?.id, form]);
+ 
+  const handleCancel = useCallback(() => {
+    setIsModalVisible(false);
+    navigate('/feedback/requests');
+  }, [navigate]);
+ 
+  const handleModalCancel = useCallback(() => {
+    setIsModalVisible(false);
+  }, []);
+ 
   useEffect(() => {
     if (!id || !currentUser?.id) return;
-    
+   
     const fetchRequest = async () => {
       try {
         setIsFormLoading(true);
         const response = await api.get(`/feedback/requests/${id}`);
         const request = response.data;
-        
+       
         form.setFieldsValue({
           ...request,
           dueDate: dayjs(request.dueDate)
@@ -156,122 +175,73 @@ const FeedbackRequestForm: React.FC = () => {
         setIsFormLoading(false);
       }
     };
-    
+   
     fetchRequest();
   }, [id, form, navigate, currentUser?.id]);
-
-  const handleSelfFeedbackChange = useCallback((checked: boolean) => {
-    if (checked) {
-      form.setFieldsValue({ 
-        recipientId: currentUser?.id,
-        type: 'self' as const
+ 
+const handleSubmit = useCallback(async (values: FeedbackFormValues) => {
+  if (!currentUser?.id) {
+    message.error('User not authenticated');
+    return;
+  }
+ 
+  // Client-side validation for due date
+  if (values.dueDate && values.dueDate.isBefore(dayjs())) {
+    message.error('Due date must be in the future');
+    return;
+  }
+ 
+  try {
+    setIsLoading(true);
+ 
+    // Base request data
+    const requestData = {
+      recipientId: values.recipientId,
+      dueDate: values.dueDate.toISOString(),
+      message: values.message || undefined,
+      status: 'pending' as const,
+    };
+ 
+    if (id) {
+      // For updates, only include allowed fields
+      await updateFeedbackRequest(id, {
+        recipientId: requestData.recipientId,
+        dueDate: requestData.dueDate,
+        message: requestData.message,
+        status: requestData.status,
       });
+      message.success('Feedback request updated successfully');
     } else {
-      form.setFieldsValue({ 
-        recipientId: undefined,
-        type: 'peer' as const
-      });
-    }
-  }, [currentUser?.id, form]);
-
-  const handleCancel = useCallback(() => {
-    setIsModalVisible(false);
-    navigate('/feedback/requests');
-  }, [navigate]);
-
-  const handleModalCancel = useCallback(() => {
-    setIsModalVisible(false);
-  }, []);
-
-  const handleSubmit = useCallback(async (values: FeedbackFormValues) => {
-    if (!currentUser?.id) {
-      message.error('User not authenticated');
-      return;
-    }
-
-    // Ensure subjectId is always set to the current user's ID
-    values.subjectId = currentUser.id;
-
-    // Ensure type is one of the valid values
-    const validTypes = ['peer', 'manager', 'self', 'upward', '360'] as const;
-    if (!validTypes.includes(values.type as any)) {
-      message.error('Invalid feedback type');
-      return;
-    }
-
-    // Ensure recipient is selected
-    if (!values.recipientId) {
-      message.error('Please select a recipient');
-      return;
-    }
-
-    // Client-side validation for due date
-    if (values.dueDate && values.dueDate.isBefore(dayjs())) {
-      message.error('Due date must be in the future');
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      
-      // Prepare the request data
-      const requestData = {
-        recipientId: values.recipientId,
-        subjectId: values.subjectId, // The user the feedback is about
-        requesterId: currentUser.id,  // The user making the request
-        dueDate: values.dueDate.toISOString(),
-        message: values.message || undefined,
-        cycleId: values.cycleId,
+      // For creation, include all fields
+      await createFeedbackRequest({
+        ...requestData,
         type: values.type,
-        status: 'pending' as const
-      };
-
-      if (id) {
-        // Update existing request
-        await updateFeedbackRequest(id, requestData);
-        message.success('Feedback request updated successfully');
-      } else {
-        // Create new request
-        await createFeedbackRequest(requestData);
-        message.success('Feedback request created successfully');
-      }
-      
-      navigate('/feedback/requests');
-    } catch (error: any) {
-      console.error('Error submitting feedback request:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to submit feedback request';
-      message.error(Array.isArray(errorMessage) ? errorMessage.join(', ') : errorMessage);
-    } finally {
-      setIsLoading(false);
+        cycleId: values.cycleId,
+        subjectId: currentUser.id,
+        requesterId: currentUser.id,
+      });
+      message.success('Feedback request created successfully');
     }
-
-    try {
-      setIsLoading(true);
-      
-      const requestData = {
-        ...values,
-        dueDate: values.dueDate.toISOString(),
-        status: 'pending' as const
-      };
-      
-      if (id) {
-        await updateFeedbackRequest(id, requestData);
-        message.success('Feedback request updated successfully');
-      } else {
-        await createFeedbackRequest(requestData);
-        message.success('Feedback request created successfully');
-      }
-      
-      navigate('/feedback/requests');
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to submit feedback request';
-      message.error(errorMessage);
-      console.error('Error submitting feedback request:', error);
-    } finally {
-      setIsLoading(false);
+ 
+    navigate('/feedback/requests');
+  } catch (error: unknown) {
+    console.error('Error submitting feedback request:', error);
+    let errorMessage = 'Failed to submit feedback request';
+    if (typeof error === 'object' && error !== null && 'response' in error) {
+      const err = error as { response?: { data?: { message?: string | string[] } } };
+      const msg = err.response?.data?.message;
+      errorMessage = Array.isArray(msg) ? msg.join(', ') : (msg || errorMessage);
     }
-  }, [currentUser?.id, id, navigate]);
-
+    message.error(Array.isArray(errorMessage) ? errorMessage.join(', ') : errorMessage);
+  } finally {
+    setIsLoading(false);
+  }
+}, [currentUser?.id, id, navigate]);
+ 
+if (!currentUser) {
+  return null;
+}
+ 
   if (loadingUser || isFormLoading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', padding: '24px' }}>
@@ -279,7 +249,7 @@ const FeedbackRequestForm: React.FC = () => {
       </div>
     );
   }
-
+ 
   return (
     <div className="feedback-request-form">
       <Card
@@ -308,7 +278,7 @@ const FeedbackRequestForm: React.FC = () => {
               <Option value="360">360° Feedback</Option>
             </Select>
           </Form.Item>
-
+ 
           <Form.Item
             name="isSelfFeedback"
             label="Request Self-Feedback"
@@ -320,7 +290,7 @@ const FeedbackRequestForm: React.FC = () => {
               onChange={handleSelfFeedbackChange}
             />
           </Form.Item>
-
+ 
           <Form.Item
             name="recipientId"
             label="Recipient"
@@ -331,7 +301,7 @@ const FeedbackRequestForm: React.FC = () => {
               loading={isLoading}
               style={{ width: '100%' }}
               optionFilterProp="children"
-              filterOption={(input, option) => 
+              filterOption={(input, option) =>
                 String(option?.children ?? '').toLowerCase().includes(input.toLowerCase())
               }
               notFoundContent={isLoading ? <Spin size="small" /> : "No employees found"}
@@ -339,16 +309,16 @@ const FeedbackRequestForm: React.FC = () => {
               {employees.map((employee) => {
                 const fullName = employee.name || `${employee.firstName || ''} ${employee.lastName || ''}`.trim();
                 const email = employee.email || '';
-                
+               
                 return (
                   <Option key={employee.id} value={employee.id}>
                     <div style={{ display: 'flex', alignItems: 'center' }}>
                       <div style={{ marginRight: 12 }}>
                         {employee.avatar ? (
-                          <img 
-                            src={employee.avatar} 
-                            alt={fullName} 
-                            style={{ width: 24, height: 24, borderRadius: '50%' }} 
+                          <img
+                            src={employee.avatar}
+                            alt={fullName}
+                            style={{ width: 24, height: 24, borderRadius: '50%' }}
                           />
                         ) : (
                           <div style={{
@@ -370,12 +340,12 @@ const FeedbackRequestForm: React.FC = () => {
                         <div style={{ fontSize: 12, color: '#666' }}>
                           {email}
                           {employee.role && (
-                            <span style={{ 
-                              marginLeft: 8, 
-                              padding: '2px 6px', 
-                              background: '#f0f2f5', 
-                              borderRadius: 4, 
-                              fontSize: 11 
+                            <span style={{
+                              marginLeft: 8,
+                              padding: '2px 6px',
+                              background: '#f0f2f5',
+                              borderRadius: 4,
+                              fontSize: 11
                             }}>
                               {employee.role}
                             </span>
@@ -388,7 +358,7 @@ const FeedbackRequestForm: React.FC = () => {
               })}
             </Select>
           </Form.Item>
-
+ 
           <Form.Item
             name="dueDate"
             label="Due Date"
@@ -412,7 +382,7 @@ const FeedbackRequestForm: React.FC = () => {
               }}
             />
           </Form.Item>
-
+ 
           <Form.Item
             name="cycleId"
             label="Feedback Cycle"
@@ -434,12 +404,12 @@ const FeedbackRequestForm: React.FC = () => {
                     <div style={{ fontWeight: 500 }}>{cycle.name}</div>
                     <div style={{ fontSize: 12, color: '#666' }}>
                       {new Date(cycle.startDate).toLocaleDateString()} - {new Date(cycle.endDate).toLocaleDateString()}
-                      <span style={{ 
-                        marginLeft: 8, 
-                        padding: '2px 6px', 
+                      <span style={{
+                        marginLeft: 8,
+                        padding: '2px 6px',
                         background: cycle.status === 'active' ? '#e6f7ff' : '#f0f0f0',
                         color: cycle.status === 'active' ? '#1890ff' : '#666',
-                        borderRadius: 4, 
+                        borderRadius: 4,
                         fontSize: 11,
                         textTransform: 'capitalize'
                       }}>
@@ -448,7 +418,7 @@ const FeedbackRequestForm: React.FC = () => {
                     </div>
                   </div>
                 );
-
+ 
                 return (
                   <Option key={cycle.id} value={cycle.id} label={cycle.name}>
                     {cycleLabel}
@@ -457,7 +427,7 @@ const FeedbackRequestForm: React.FC = () => {
               })}
             </Select>
           </Form.Item>
-
+ 
           <Form.Item
             name="message"
             label="Message to Recipient"
@@ -465,7 +435,7 @@ const FeedbackRequestForm: React.FC = () => {
           >
             <Input.TextArea rows={4} placeholder="Enter your message to the recipient" />
           </Form.Item>
-
+ 
           <Form.Item>
             <Space>
               <Button type="primary" htmlType="submit" loading={isLoading}>
@@ -493,5 +463,6 @@ const FeedbackRequestForm: React.FC = () => {
     </div>
   );
 };
-
+ 
 export default FeedbackRequestForm;
+ 

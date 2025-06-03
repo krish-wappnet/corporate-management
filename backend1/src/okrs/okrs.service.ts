@@ -86,11 +86,12 @@ export class OkrsService {
           });
         });
 
-        await manager.save(keyResults);
+        const savedKeyResults = await manager.save(keyResults);
+        savedOkr.keyResults = savedKeyResults;
       }
 
-      // Return full OKR with key results
-      return this.findOkrById(savedOkr.id);
+      // Return the saved OKR with its key results
+      return savedOkr;
     });
   }
 

@@ -215,7 +215,7 @@ const OkrFormPage: React.FC = () => {
           parentOkrId: okrData.parentOkrId,
           status: okrData.status || "draft",
           progress: okrData.progress || 0,
-          frequency: okrData.frequency || "quarterly", // Use default value if frequency is undefined
+          frequency: okrData.frequency || "quarterly",
           type: okrData.type || "individual",
           keyResults:
             okrData.keyResults?.map((kr) => ({
@@ -224,7 +224,6 @@ const OkrFormPage: React.FC = () => {
               title: kr.title || "",
               description: kr.description || "",
               type: kr.type || "number",
-              unit: kr.unit || "number",
               startValue: Number(kr.startValue) || 0,
               targetValue: Number(kr.targetValue) || 100,
               currentValue: Number(kr.currentValue) || 0,
@@ -233,9 +232,14 @@ const OkrFormPage: React.FC = () => {
         });
       }
     } catch (error) {
-      message.error(`Failed to load OKR: ${(error as AxiosError).message}`);
+      if (isAxiosError(error) && error.response?.status === 404) {
+        message.error("The OKR you're trying to edit no longer exists");
+        navigate("/okrs"); // Redirect to OKR list
+      } else {
+        message.error(`Failed to load OKR: ${(error as AxiosError).message}`);
+      }
     }
-  }, [dispatch, id, form]);
+  }, [dispatch, id, form, navigate]);
 
   // Type guard for Axios error
   const isAxiosError = (
@@ -247,8 +251,10 @@ const OkrFormPage: React.FC = () => {
   // Handle form submission
   const handleSubmit = useCallback(
     async (values: FormValues) => {
+      console.log('Form submitted with values:', values);
       try {
         setSubmitting(true);
+        console.log('Starting form submission...');
         const validFrequencies = ["quarterly", "annual", "custom"] as const;
         const frequency = values.frequency as Frequency;
         if (!validFrequencies.includes(frequency)) {
@@ -261,11 +267,13 @@ const OkrFormPage: React.FC = () => {
 
         // Get current user ID from JWT token
         const token = localStorage.getItem('token');
+        console.log('Token found:', !!token);
         if (!token) {
           throw new Error('Authentication token not found');
         }
         const decodedToken = jwtDecode<{ sub: string; iat: number; exp: number }>(token);
         const userId = decodedToken.sub;
+        console.log('User ID from token:', userId);
         if (!userId) {
           throw new Error('User ID not found in token');
         }
@@ -294,10 +302,11 @@ const OkrFormPage: React.FC = () => {
             startValue: Number(kr.startValue) || 0,
             targetValue: Number(kr.targetValue) || 0,
             currentValue: Number(kr.currentValue) || 0,
-            weight: Number(kr.weight) || 1,
-            unit: kr.unit || "number"
+            weight: Number(kr.weight) || 1
           })),
         } as CreateOkrDto;
+
+        console.log('Prepared OKR data:', okrData);
 
         // Validate key result values
         okrData.keyResults.forEach((kr, index) => {
@@ -314,14 +323,27 @@ const OkrFormPage: React.FC = () => {
         });
 
         if (id) {
-          await dispatch(updateOKR({ id, okrData })).unwrap();
-          message.success("OKR updated successfully");
+          console.log('Updating existing OKR...');
+          try {
+            await dispatch(updateOKR({ id, okrData })).unwrap();
+            message.success("OKR updated successfully");
+            navigate("/okrs");
+          } catch (error) {
+            if (isAxiosError(error) && error.response?.status === 404) {
+              message.error("The OKR you're trying to update no longer exists");
+              navigate("/okrs");
+              return;
+            }
+            throw error; // Re-throw other errors to be caught by outer catch
+          }
         } else {
+          console.log('Creating new OKR...');
           await dispatch(createOKR(okrData)).unwrap();
           message.success("OKR created successfully");
+          navigate("/okrs");
         }
-        navigate("/okrs");
       } catch (error) {
+        console.error('Form submission error:', error);
         if (isAxiosError(error) && error.response?.data) {
           const errorMessage = Array.isArray(error.response.data.message)
             ? error.response.data.message.join("; ")
@@ -386,6 +408,9 @@ const OkrFormPage: React.FC = () => {
             form={form}
             layout="vertical"
             onFinish={handleSubmit}
+            onFinishFailed={({ values, errorFields, outOfDate }) => {
+              console.log('Form validation failed:', { values, errorFields, outOfDate });
+            }}
             className="space-y-6"
           >
             <Row gutter={[16, 16]}>
@@ -578,106 +603,66 @@ const OkrFormPage: React.FC = () => {
                 {
                   validator: async (_, keyResults) => {
                     if (!keyResults || keyResults.length === 0) {
-                      return Promise.reject(
-                        new Error("At least one key result is required")
-                      );
+                      return Promise.reject(new Error("At least one key result is required"));
                     }
+                    return Promise.resolve();
                   },
                 },
               ]}
             >
               {(fields, { add, remove }) => (
                 <div className="space-y-4">
-                  {fields.map((field, index) => {
-                    const fieldKey = `key-result-${field.key || `field-${index}`}`;
-                    return (
-                      <Space key={fieldKey} className="flex flex-wrap items-start gap-4 bg-gray-50 p-4 rounded-lg" align="start">
+                  {fields.map((field) => (
+                    <div key={field.key} className="bg-gray-50 p-4 rounded-lg">
+                      <Space className="flex flex-wrap items-start gap-4" align="start">
                         <Form.Item
-                          {...field}
                           name={[field.name, "title"]}
                           rules={[{ required: true, message: "Missing title" }]}
                           className="flex-1 min-w-[200px]"
                         >
-                          <Input
-                            placeholder="Key Result Title"
-                            className="border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:border-blue-500 transition-all text-gray-900 placeholder-gray-400 px-4 py-3 text-base"
-                          />
+                          <Input placeholder="Key Result Title" />
                         </Form.Item>
                         <Form.Item
-                          {...field}
                           name={[field.name, "description"]}
                           rules={[{ required: true, message: "Missing description" }]}
                           className="flex-1 min-w-[200px]"
                         >
-                          <Input
-                            placeholder="Key Result Description"
-                            className="border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:border-blue-500 transition-all text-gray-900 placeholder-gray-400 px-4 py-3 text-base"
-                          />
+                          <Input placeholder="Key Result Description" />
                         </Form.Item>
                         <Form.Item
-                          {...field}
                           name={[field.name, "startValue"]}
-                          rules={[
-                            { required: true, message: "Missing start value" },
-                            { type: "number", message: "Must be a number" },
-                          ]}
+                          rules={[{ required: true, message: "Missing start value" }]}
                           className="w-[120px]"
                         >
-                          <InputNumber
-                            placeholder="Start Value"
-                            className="w-full"
-                            style={{ borderRadius: 8 }}
-                          />
+                          <InputNumber placeholder="Start Value" />
                         </Form.Item>
                         <Form.Item
-                          {...field}
                           name={[field.name, "targetValue"]}
-                          rules={[
-                            { required: true, message: "Missing target value" },
-                            { type: "number", message: "Must be a number" },
-                          ]}
+                          rules={[{ required: true, message: "Missing target value" }]}
                           className="w-[120px]"
                         >
-                          <InputNumber
-                            placeholder="Target Value"
-                            className="w-full"
-                            style={{ borderRadius: 8 }}
-                          />
+                          <InputNumber placeholder="Target Value" />
                         </Form.Item>
                         <Form.Item
-                          {...field}
                           name={[field.name, "currentValue"]}
-                          rules={[
-                            { required: true, message: "Missing current value" },
-                            { type: "number", message: "Must be a number" },
-                          ]}
+                          rules={[{ required: true, message: "Missing current value" }]}
                           className="w-[120px]"
                         >
-                          <InputNumber
-                            placeholder="Current Value"
-                            className="w-full"
-                            style={{ borderRadius: 8 }}
-                          />
+                          <InputNumber placeholder="Current Value" />
                         </Form.Item>
                         <Form.Item
-                          {...field}
                           name={[field.name, "weight"]}
-                          rules={[
-                            { required: true, message: "Missing weight" },
-                            { type: "number", message: "Must be a number" },
-                            {
-                              type: "number",
-                              min: 0,
-                              message: "Weight must be non-negative",
-                            },
-                          ]}
+                          rules={[{ required: true, message: "Missing weight" }]}
                           className="w-[120px]"
                         >
-                          <InputNumber
-                            placeholder="Weight"
-                            className="w-full"
-                            style={{ borderRadius: 8 }}
-                          />
+                          <InputNumber placeholder="Weight" />
+                        </Form.Item>
+                        <Form.Item
+                          name={[field.name, "id"]}
+                          noStyle
+                          initialValue={uuidv4()}
+                        >
+                          <Input type="hidden" />
                         </Form.Item>
                         <Button
                           type="link"
@@ -687,22 +672,21 @@ const OkrFormPage: React.FC = () => {
                           Remove
                         </Button>
                       </Space>
-                    );
-                  })}
+                    </div>
+                  ))}
                   <Form.Item>
                     <Button
                       type="dashed"
                       onClick={() =>
                         add({
-                          key: `new-${uuidv4()}`,
+                          id: uuidv4(),
                           title: "",
                           description: "",
                           type: "number",
-                          unit: "number",
                           startValue: 0,
                           targetValue: 100,
                           currentValue: 0,
-                          weight: 1,
+                          weight: 1
                         })
                       }
                       className="w-full border-gray-200 rounded-lg shadow-sm hover:bg-gray-50 transition-all h-12 text-base font-semibold"
