@@ -17,6 +17,7 @@ import {
   BarChart2,
 } from "lucide-react";
 import type { NavItem, SidebarNavProps } from "../../types/navigation";
+import { selectAuthUser } from '../../store/slices/authSlice';
 
 // Define navigation items
 const navItems: NavItem[] = [
@@ -185,7 +186,7 @@ const navItems: NavItem[] = [
 ];
 
 const Sidebar: React.FC<SidebarNavProps> = ({ isOpen, onClose }) => {
-  const { user } = useAppSelector((state) => state.auth);
+  const user = useAppSelector(selectAuthUser);
   const location = useLocation();
   const [openItems, setOpenItems] = React.useState<Record<string, boolean>>({});
 

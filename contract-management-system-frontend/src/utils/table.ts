@@ -34,8 +34,10 @@ export const handleTableChange = <T>(
 ) => {
   const sorterResult = Array.isArray(sorter) ? sorter[0] : sorter;
   
-  setTableParams(prev => ({
+  setTableParams((prev: TableParams<T>) => ({
     ...prev,
+    sortField: sorterResult.field as keyof T,
+    sortOrder: sorterResult.order,
     pagination: {
       ...prev.pagination,
       current: pagination.current,
@@ -45,10 +47,6 @@ export const handleTableChange = <T>(
       ...prev.filters,
       ...filters,
     },
-    ...(sorterResult.field && {
-      sortField: sorterResult.field,
-      sortOrder: sorterResult.order,
-    }),
   }));
 
   if (onFilterChange) {

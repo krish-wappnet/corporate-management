@@ -2,9 +2,11 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { getFeedbackRequests } from "../../api/feedbackApi";
-import type { FeedbackRequest, RequestStatus } from "../../types/feedback.types";
+import type {  RequestStatus } from "../../types/feedback.types";
 import { FeedbackType } from "../../types/feedback.types";
 import { formatDistanceToNow } from "date-fns";
+import { message } from "antd";
+import type { FeedbackRequest as ApiFeedbackRequest, User as ApiUser } from '../../api/feedbackApi';
  
 // Ant Design Icons
 import {
@@ -16,11 +18,23 @@ import {
   DeleteOutlined,
 } from "@ant-design/icons";
  
+interface User extends ApiUser {
+  firstName?: string;
+  lastName?: string;
+  position?: string;
+}
+
+interface ExtendedFeedbackRequest extends Omit<ApiFeedbackRequest, 'requester' | 'recipient' | 'subject'> {
+  requester: User;
+  recipient: User;
+  subject: User;
+}
+ 
 const FeedbackRequests: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
  
-  const [requests, setRequests] = useState<FeedbackRequest[]>([]);
+  const [requests, setRequests] = useState<ExtendedFeedbackRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -35,10 +49,11 @@ const FeedbackRequests: React.FC = () => {
       };
  
       const data = await getFeedbackRequests(params);
-      setRequests(data.items);
+      setRequests(data.items as ExtendedFeedbackRequest[]);
       setTotal(data.total);
     } catch (error) {
       console.error("Error fetching feedback requests:", error);
+      message.error('Failed to load feedback requests');
     } finally {
       setLoading(false);
     }
@@ -99,6 +114,8 @@ const FeedbackRequests: React.FC = () => {
       console.error("Error responding to request:", error);
     }
   };
+ 
+
  
   return (
     <div className="p-6">

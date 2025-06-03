@@ -1,5 +1,5 @@
 import api from './api';
-import { PaginatedResponse } from '../types/common';
+import type { PaginatedResponse } from '../types/common';
 import type { 
   PerformanceReview, 
   CreatePerformanceReviewDto, 

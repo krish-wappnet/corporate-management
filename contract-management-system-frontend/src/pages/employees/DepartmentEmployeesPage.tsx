@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { Card, Table, Tag, Button, Spin, message, Avatar, Row, Col, Typography } from 'antd';
 import { UserOutlined, ArrowLeftOutlined, CrownOutlined, TeamOutlined } from '@ant-design/icons';
+import { useAppSelector } from '../../store/store';
+import { selectAuthUser } from '../../store/slices/authSlice';
 
 const { Title, Text } = Typography;
 import type { ColumnsType } from 'antd/es/table';
-import type { RootState } from '../../store/rootReducer';
 import api from '../../services/api';
 
 interface User {
@@ -24,7 +24,7 @@ const DepartmentEmployeesPage: React.FC = () => {
   const [employees, setEmployees] = useState<User[]>([]);
   const [departmentName, setDepartmentName] = useState('');
   const navigate = useNavigate();
-  const user = useSelector((state: RootState) => state.auth.user);
+  const user = useAppSelector(selectAuthUser);
 
   useEffect(() => {
     const fetchDepartmentEmployees = async () => {

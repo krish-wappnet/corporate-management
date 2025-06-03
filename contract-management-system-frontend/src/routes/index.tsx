@@ -1,6 +1,7 @@
 import React from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useAppSelector } from "../store/store";
+import { selectAuthUser, selectAuthLoading } from "../store/slices/authSlice";
 import Layout from "../components/layout/Layout";
 import Home from "../pages/Home";
 import Auth from "../components/auth/Auth";
@@ -44,8 +45,10 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles }) => {
-  const { isAuthenticated, loading, user } = useAppSelector((state) => state.auth);
   const location = useLocation();
+  const user = useAppSelector(selectAuthUser);
+  const loading = useAppSelector(selectAuthLoading);
+  const isAuthenticated = !!user;
 
   console.log('ProtectedRoute - Auth state:', { isAuthenticated, loading, user, path: location.pathname });
   console.log('Allowed roles for this route:', allowedRoles);
@@ -82,6 +85,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
 };
 
 const AppRoutes: React.FC = () => {
+
+
   return (
     <Routes>
       {/* Public Routes */}

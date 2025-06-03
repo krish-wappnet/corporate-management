@@ -7,6 +7,8 @@ import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import api from '../../services/api';
 import { createFeedbackRequest, updateFeedbackRequest } from '../../api/feedbackApi';
+import { FeedbackType } from '../../types/feedback.types';
+import type { RequestStatus, FeedbackRequestFormData } from '../../types/feedback.types';
  
 const { Option } = Select;
  
@@ -19,11 +21,6 @@ interface User {
   lastName?: string;
   avatar?: string;
 }
- 
-type FeedbackType = 'peer' | 'manager' | 'self' | 'upward' | '360';
-type RequestStatus = 'pending' | 'in-progress' | 'completed' | 'cancelled';
- 
-// Feedback type definitions
  
 interface FeedbackFormValues {
   type: FeedbackType;
@@ -43,8 +40,8 @@ const FeedbackRequestForm: React.FC = () => {
   const [form] = Form.useForm<FeedbackFormValues>();
  
   const initialValues: Partial<FeedbackFormValues> = {
-    type: 'peer' as const,
-    status: 'pending' as const,
+    type: FeedbackType.PEER,
+    status: 'pending' as RequestStatus,
     recipientId: undefined,
     subjectId: currentUser?.id,
     dueDate: undefined,
@@ -134,12 +131,12 @@ const FeedbackRequestForm: React.FC = () => {
     if (checked) {
       form.setFieldsValue({
         recipientId: currentUser?.id,
-        type: 'self' as const
+        type: FeedbackType.SELF
       });
     } else {
       form.setFieldsValue({
         recipientId: undefined,
-        type: 'peer' as const
+        type: FeedbackType.PEER
       });
     }
   }, [currentUser?.id, form]);
@@ -194,45 +191,28 @@ const handleSubmit = useCallback(async (values: FeedbackFormValues) => {
   try {
     setIsLoading(true);
  
-    // Base request data
-    const requestData = {
+    const requestData: FeedbackRequestFormData = {
+      type: values.type,
       recipientId: values.recipientId,
+      subjectId: values.subjectId,
       dueDate: values.dueDate.toISOString(),
-      message: values.message || undefined,
-      status: 'pending' as const,
+      message: values.message,
+      cycleId: values.cycleId,
+      isAnonymous: false
     };
  
     if (id) {
-      // For updates, only include allowed fields
-      await updateFeedbackRequest(id, {
-        recipientId: requestData.recipientId,
-        dueDate: requestData.dueDate,
-        message: requestData.message,
-        status: requestData.status,
-      });
-      message.success('Feedback request updated successfully');
+      await updateFeedbackRequest(id, { status: values.status });
     } else {
-      // For creation, include all fields
-      await createFeedbackRequest({
-        ...requestData,
-        type: values.type,
-        cycleId: values.cycleId,
-        subjectId: currentUser.id,
-        requesterId: currentUser.id,
-      });
-      message.success('Feedback request created successfully');
+      await createFeedbackRequest(requestData);
     }
  
+    message.success(`Feedback request ${id ? 'updated' : 'created'} successfully`);
     navigate('/feedback/requests');
-  } catch (error: unknown) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Error submitting feedback request';
+    message.error(errorMessage);
     console.error('Error submitting feedback request:', error);
-    let errorMessage = 'Failed to submit feedback request';
-    if (typeof error === 'object' && error !== null && 'response' in error) {
-      const err = error as { response?: { data?: { message?: string | string[] } } };
-      const msg = err.response?.data?.message;
-      errorMessage = Array.isArray(msg) ? msg.join(', ') : (msg || errorMessage);
-    }
-    message.error(Array.isArray(errorMessage) ? errorMessage.join(', ') : errorMessage);
   } finally {
     setIsLoading(false);
   }

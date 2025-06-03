@@ -44,17 +44,20 @@ exports.AppModule = AppModule = __decorate([
             typeorm_1.TypeOrmModule.forRootAsync({
                 imports: [config_1.ConfigModule],
                 inject: [config_1.ConfigService],
-                useFactory: (configService) => ({
-                    type: 'postgres',
-                    host: configService.get('DB_HOST', 'localhost'),
-                    port: configService.get('DB_PORT', 5432),
-                    username: configService.get('DB_USERNAME', 'postgres'),
-                    password: configService.get('DB_PASSWORD', 'postgres'),
-                    database: configService.get('DB_DATABASE', 'performance_management'),
-                    entities: [__dirname + '/**/*.entity{.ts,.js}'],
-                    synchronize: configService.get('NODE_ENV') !== 'production',
-                    logging: configService.get('NODE_ENV') !== 'production',
-                }),
+                useFactory: (configService) => {
+                    const databaseUrl = configService.get('DATABASE_URL');
+                    console.log('Attempting to connect to database with URL:', databaseUrl);
+                    return {
+                        type: 'postgres',
+                        url: databaseUrl,
+                        entities: [__dirname + '/**/*.entity{.ts,.js}'],
+                        synchronize: configService.get('NODE_ENV') !== 'production',
+                        logging: configService.get('NODE_ENV') !== 'production',
+                        ssl: {
+                            rejectUnauthorized: false
+                        }
+                    };
+                },
             }),
             users_module_1.UsersModule,
             auth_module_1.AuthModule,

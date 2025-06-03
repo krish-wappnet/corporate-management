@@ -1,5 +1,5 @@
 import { useSelector } from 'react-redux';
-import type { RootState } from '../store/store';
+import { selectAuthUser, selectAuthLoading, selectAuthError } from '../store/slices/authSlice';
 
 // Auth state is defined in the store
 
@@ -12,9 +12,10 @@ export interface User {
 }
 
 export const useAuth = () => {
-  const { isAuthenticated, user, loading, error } = useSelector(
-    (state: RootState) => state.auth
-  );
+  const user = useSelector(selectAuthUser);
+  const loading = useSelector(selectAuthLoading);
+  const error = useSelector(selectAuthError);
+  const isAuthenticated = !!user;
 
   return {
     isAuthenticated,

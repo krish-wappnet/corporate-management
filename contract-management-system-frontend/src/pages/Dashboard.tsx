@@ -3,7 +3,7 @@ import { useAppDispatch, useAppSelector } from '../store/store';
 import { logout, selectAuthUser, selectAuthLoading, selectAuthError } from '../store/slices/authSlice';
 import { useNavigate } from 'react-router-dom';
 import { Modal } from '../components/common/Modal';
-import { RoleBasedDashboard } from './dashboard/RoleBasedDashboard';
+import RoleBasedDashboard from './dashboard/RoleBasedDashboard';
 
 
 const Dashboard: React.FC = () => {
