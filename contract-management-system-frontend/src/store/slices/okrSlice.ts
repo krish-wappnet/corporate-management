@@ -14,6 +14,11 @@ import type {
   OkrFilterParams
 } from '../../types/okr';
 import type { PaginatedResponse } from '../../types/common';
+import type { AxiosError } from 'axios';
+
+interface ApiErrorResponse {
+  message: string;
+}
 
 interface OKRState {
   okrs: Okr[];
@@ -53,14 +58,19 @@ const initialState: OKRState = {
 };
 
 // Async thunks
-export const fetchOKRs = createAsyncThunk(
+export const fetchOKRs = createAsyncThunk<
+  PaginatedResponse<Okr>,
+  OkrFilterParams,
+  { rejectValue: string }
+>(
   'okrs/fetchOKRs',
   async (params: OkrFilterParams, { rejectWithValue }) => {
     try {
       return await okrApi.getOkrs(params);
-    } catch (error: any) {
+    } catch (error) {
+      const apiError = error as AxiosError<ApiErrorResponse>;
       return rejectWithValue(
-        error.response?.data?.message || 'Failed to fetch OKRs'
+        apiError.response?.data?.message || 'Failed to fetch OKRs'
       );
     }
   }
@@ -71,9 +81,10 @@ export const fetchOKRById = createAsyncThunk(
   async (id: string, { rejectWithValue }) => {
     try {
       return await okrApi.getOkrById(id);
-    } catch (error: any) {
+    } catch (error) {
+      const apiError = error as AxiosError<ApiErrorResponse>;
       return rejectWithValue(
-        error.response?.data?.message || 'Failed to fetch OKR'
+        apiError.response?.data?.message || 'Failed to fetch OKR'
       );
     }
   }
@@ -84,9 +95,10 @@ export const createOKR = createAsyncThunk(
   async (okrData: CreateOkrDto, { rejectWithValue }) => {
     try {
       return await okrApi.createOkr(okrData);
-    } catch (error: any) {
+    } catch (error) {
+      const apiError = error as AxiosError<ApiErrorResponse>;
       return rejectWithValue(
-        error.response?.data?.message || 'Failed to create OKR'
+        apiError.response?.data?.message || 'Failed to create OKR'
       );
     }
   }
@@ -100,9 +112,10 @@ export const updateOKR = createAsyncThunk(
   ) => {
     try {
       return await okrApi.updateOkr(id, okrData);
-    } catch (error: any) {
+    } catch (error) {
+      const apiError = error as AxiosError<ApiErrorResponse>;
       return rejectWithValue(
-        error.response?.data?.message || 'Failed to update OKR'
+        apiError.response?.data?.message || 'Failed to update OKR'
       );
     }
   }
@@ -114,9 +127,10 @@ export const deleteOKR = createAsyncThunk(
     try {
       await okrApi.deleteOkr(id);
       return id;
-    } catch (error: any) {
+    } catch (error) {
+      const apiError = error as AxiosError<ApiErrorResponse>;
       return rejectWithValue(
-        error.response?.data?.message || 'Failed to delete OKR'
+        apiError.response?.data?.message || 'Failed to delete OKR'
       );
     }
   }
@@ -130,9 +144,10 @@ export const createKeyResult = createAsyncThunk(
   ) => {
     try {
       return await okrApi.createKeyResult(okrId, data);
-    } catch (error: any) {
+    } catch (error) {
+      const apiError = error as AxiosError<ApiErrorResponse>;
       return rejectWithValue(
-        error.response?.data?.message || 'Failed to create key result'
+        apiError.response?.data?.message || 'Failed to create key result'
       );
     }
   }
@@ -146,9 +161,10 @@ export const updateKeyResult = createAsyncThunk(
   ) => {
     try {
       return await okrApi.updateKeyResult(id, data);
-    } catch (error: any) {
+    } catch (error) {
+      const apiError = error as AxiosError<ApiErrorResponse>;
       return rejectWithValue(
-        error.response?.data?.message || 'Failed to update key result'
+        apiError.response?.data?.message || 'Failed to update key result'
       );
     }
   }
@@ -160,9 +176,10 @@ export const deleteKeyResult = createAsyncThunk(
     try {
       await okrApi.deleteKeyResult(id);
       return id;
-    } catch (error: any) {
+    } catch (error) {
+      const apiError = error as AxiosError<ApiErrorResponse>;
       return rejectWithValue(
-        error.response?.data?.message || 'Failed to delete key result'
+        apiError.response?.data?.message || 'Failed to delete key result'
       );
     }
   }
@@ -173,9 +190,10 @@ export const createKeyResultUpdate = createAsyncThunk(
   async (data: CreateKeyResultUpdateDto, { rejectWithValue }) => {
     try {
       return await okrApi.createKeyResultUpdate(data);
-    } catch (error: any) {
+    } catch (error) {
+      const apiError = error as AxiosError<ApiErrorResponse>;
       return rejectWithValue(
-        error.response?.data?.message || 'Failed to create key result update'
+        apiError.response?.data?.message || 'Failed to create key result update'
       );
     }
   }
@@ -186,9 +204,10 @@ export const fetchKeyResultUpdates = createAsyncThunk(
   async (keyResultId: string, { rejectWithValue }) => {
     try {
       return await okrApi.getKeyResultUpdates(keyResultId);
-    } catch (error: any) {
+    } catch (error) {
+      const apiError = error as AxiosError<ApiErrorResponse>;
       return rejectWithValue(
-        error.response?.data?.message || 'Failed to fetch key result updates'
+        apiError.response?.data?.message || 'Failed to fetch key result updates'
       );
     }
   }
@@ -199,9 +218,10 @@ export const fetchCompletionRate = createAsyncThunk(
   async (params: { userId?: string } = {}, { rejectWithValue }) => {
     try {
       return await okrApi.getCompletionRate(params.userId);
-    } catch (error: any) {
+    } catch (error) {
+      const apiError = error as AxiosError<ApiErrorResponse>;
       return rejectWithValue(
-        error.response?.data?.message || 'Failed to fetch completion rate'
+        apiError.response?.data?.message || 'Failed to fetch completion rate'
       );
     }
   }
@@ -212,9 +232,10 @@ export const fetchUserProgress = createAsyncThunk(
   async (params: { userId: string }, { rejectWithValue }) => {
     try {
       return await okrApi.getUserProgress(params.userId);
-    } catch (error: any) {
+    } catch (error) {
+      const apiError = error as AxiosError<ApiErrorResponse>;
       return rejectWithValue(
-        error.response?.data?.message || 'Failed to fetch user progress'
+        apiError.response?.data?.message || 'Failed to fetch user progress'
       );
     }
   }
@@ -247,179 +268,115 @@ const okrSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    // Helper function to handle pending state
+    // Handle loading state
     const handlePending = (state: OKRState) => {
       state.loading = true;
       state.error = null;
     };
 
-    // Helper function to handle rejected state
-    const handleRejected = (state: OKRState, action: any) => {
+    // Handle error state
+    const handleRejected = (state: OKRState, action: PayloadAction<unknown>) => {
       state.loading = false;
-      state.error = action.payload as string;
+      state.error = typeof action.payload === 'string' ? action.payload : 'An error occurred';
     };
 
-    // Fetch OKRs
-    builder.addCase(fetchOKRs.pending, handlePending);
-    builder.addCase(
-      fetchOKRs.fulfilled,
-      (state, action: PayloadAction<PaginatedResponse<Okr>>) => {
-        state.loading = false;
-        state.okrs = action.payload.items;
-        state.total = action.payload.total;
-      }
-    );
-    builder.addCase(fetchOKRs.rejected, handleRejected);
-
-    // Fetch OKR By Id
-    builder.addCase(fetchOKRById.pending, handlePending);
-    builder.addCase(
-      fetchOKRById.fulfilled,
-      (state, action: PayloadAction<Okr>) => {
-        state.loading = false;
-        state.currentOKR = action.payload;
-      }
-    );
-    builder.addCase(fetchOKRById.rejected, handleRejected);
-
-    // Create OKR
-    builder.addCase(createOKR.pending, handlePending);
-    builder.addCase(createOKR.fulfilled, (state, action: PayloadAction<Okr>) => {
+    // Handle success state for paginated responses
+    const handlePaginatedFulfilled = (state: OKRState, action: PayloadAction<PaginatedResponse<Okr>>) => {
       state.loading = false;
-      state.okrs.unshift(action.payload);
-      state.total += 1;
-    });
-    builder.addCase(createOKR.rejected, handleRejected);
+      state.okrs = action.payload.items;
+      state.total = action.payload.total;
+    };
 
-    // Update OKR
-    builder.addCase(updateOKR.pending, handlePending);
-    builder.addCase(
-      updateOKR.fulfilled,
-      (state, action: PayloadAction<Okr>) => {
+    // Handle success state for single item responses
+    const handleSingleFulfilled = (state: OKRState, action: PayloadAction<Okr>) => {
+      state.loading = false;
+      state.currentOKR = action.payload;
+    };
+
+    builder
+      // Fetch OKRs
+      .addCase(fetchOKRs.pending, handlePending)
+      .addCase(fetchOKRs.fulfilled, handlePaginatedFulfilled)
+      .addCase(fetchOKRs.rejected, handleRejected)
+
+      // Fetch OKR By Id
+      .addCase(fetchOKRById.pending, handlePending)
+      .addCase(fetchOKRById.fulfilled, handleSingleFulfilled)
+      .addCase(fetchOKRById.rejected, handleRejected)
+
+      // Create OKR
+      .addCase(createOKR.pending, handlePending)
+      .addCase(createOKR.fulfilled, handleSingleFulfilled)
+      .addCase(createOKR.rejected, handleRejected)
+
+      // Update OKR
+      .addCase(updateOKR.pending, handlePending)
+      .addCase(updateOKR.fulfilled, handleSingleFulfilled)
+      .addCase(updateOKR.rejected, handleRejected)
+
+      // Delete OKR
+      .addCase(deleteOKR.pending, handlePending)
+      .addCase(deleteOKR.fulfilled, (state) => {
         state.loading = false;
-        const index = state.okrs.findIndex((o) => o.id === action.payload.id);
-        if (index !== -1) {
-          state.okrs[index] = action.payload;
-        }
-        if (state.currentOKR?.id === action.payload.id) {
-          state.currentOKR = action.payload;
-        }
-      }
-    );
-    builder.addCase(updateOKR.rejected, handleRejected);
+        state.currentOKR = null;
+      })
+      .addCase(deleteOKR.rejected, handleRejected)
 
-    // Delete OKR
-    builder.addCase(deleteOKR.pending, handlePending);
-    builder.addCase(
-      deleteOKR.fulfilled,
-      (state, action: PayloadAction<string>) => {
+      // Create Key Result
+      .addCase(createKeyResult.pending, handlePending)
+      .addCase(createKeyResult.fulfilled, (state, action: PayloadAction<KeyResult>) => {
         state.loading = false;
-        state.okrs = state.okrs.filter((okr) => okr.id !== action.payload);
-        state.total -= 1;
-      }
-    );
-    builder.addCase(deleteOKR.rejected, handleRejected);
+        state.currentKeyResult = action.payload;
+      })
+      .addCase(createKeyResult.rejected, handleRejected)
 
-    // Create Key Result
-    builder.addCase(createKeyResult.pending, handlePending);
-    builder.addCase(
-      createKeyResult.fulfilled,
-      (state, action: PayloadAction<KeyResult>) => {
+      // Update Key Result
+      .addCase(updateKeyResult.pending, handlePending)
+      .addCase(updateKeyResult.fulfilled, (state, action: PayloadAction<KeyResult>) => {
         state.loading = false;
-        if (state.currentOKR) {
-          if (!state.currentOKR.keyResults) {
-            state.currentOKR.keyResults = [];
-          }
-          state.currentOKR.keyResults.push(action.payload);
-        }
-      }
-    );
-    builder.addCase(createKeyResult.rejected, handleRejected);
+        state.currentKeyResult = action.payload;
+      })
+      .addCase(updateKeyResult.rejected, handleRejected)
 
-    // Update Key Result
-    builder.addCase(updateKeyResult.pending, handlePending);
-    builder.addCase(
-      updateKeyResult.fulfilled,
-      (state, action: PayloadAction<KeyResult>) => {
+      // Delete Key Result
+      .addCase(deleteKeyResult.pending, handlePending)
+      .addCase(deleteKeyResult.fulfilled, (state) => {
         state.loading = false;
-        if (state.currentOKR?.keyResults) {
-          const index = state.currentOKR.keyResults.findIndex(
-            (kr) => kr.id === action.payload.id
-          );
-          if (index !== -1) {
-            state.currentOKR.keyResults[index] = action.payload;
-          }
-        }
-      }
-    );
-    builder.addCase(updateKeyResult.rejected, handleRejected);
+        state.currentKeyResult = null;
+      })
+      .addCase(deleteKeyResult.rejected, handleRejected)
 
-    // Delete Key Result
-    builder.addCase(deleteKeyResult.pending, handlePending);
-    builder.addCase(
-      deleteKeyResult.fulfilled,
-      (state, action: PayloadAction<string>) => {
+      // Create Key Result Update
+      .addCase(createKeyResultUpdate.pending, handlePending)
+      .addCase(createKeyResultUpdate.fulfilled, (state, action: PayloadAction<KeyResultUpdate>) => {
         state.loading = false;
-        if (state.currentOKR?.keyResults) {
-          state.currentOKR.keyResults = state.currentOKR.keyResults.filter(
-            (kr) => kr.id !== action.payload
-          );
-        }
-      }
-    );
-    builder.addCase(deleteKeyResult.rejected, handleRejected);
+        state.keyResultUpdates.push(action.payload);
+      })
+      .addCase(createKeyResultUpdate.rejected, handleRejected)
 
-    // Create Key Result Update
-    builder.addCase(createKeyResultUpdate.pending, handlePending);
-    builder.addCase(
-      createKeyResultUpdate.fulfilled,
-      (state, action: PayloadAction<KeyResultUpdate>) => {
-        state.loading = false;
-        state.keyResultUpdates.unshift(action.payload);
-      }
-    );
-    builder.addCase(createKeyResultUpdate.rejected, handleRejected);
-
-    // Fetch Key Result Updates
-    builder.addCase(fetchKeyResultUpdates.pending, handlePending);
-    builder.addCase(
-      fetchKeyResultUpdates.fulfilled,
-      (state, action: PayloadAction<KeyResultUpdate[]>) => {
+      // Fetch Key Result Updates
+      .addCase(fetchKeyResultUpdates.pending, handlePending)
+      .addCase(fetchKeyResultUpdates.fulfilled, (state, action: PayloadAction<KeyResultUpdate[]>) => {
         state.loading = false;
         state.keyResultUpdates = action.payload;
-      }
-    );
-    builder.addCase(fetchKeyResultUpdates.rejected, handleRejected);
+      })
+      .addCase(fetchKeyResultUpdates.rejected, handleRejected)
 
-    // Fetch Completion Rate
-    builder.addCase(fetchCompletionRate.pending, handlePending);
-    builder.addCase(
-      fetchCompletionRate.fulfilled,
-      (state, action: PayloadAction<{
-        total: number;
-        completed: number;
-        rate: number;
-      }>) => {
+      // Fetch Completion Rate
+      .addCase(fetchCompletionRate.pending, handlePending)
+      .addCase(fetchCompletionRate.fulfilled, (state, action: PayloadAction<OKRState['completionRate']>) => {
         state.loading = false;
         state.completionRate = action.payload;
-      }
-    );
-    builder.addCase(fetchCompletionRate.rejected, handleRejected);
+      })
+      .addCase(fetchCompletionRate.rejected, handleRejected)
 
-    // Fetch User Progress
-    builder.addCase(fetchUserProgress.pending, handlePending);
-    builder.addCase(
-      fetchUserProgress.fulfilled,
-      (state, action: PayloadAction<{
-        activeOkrs: number;
-        averageProgress: number;
-        topPerformingOkr: Partial<Okr> | null;
-      }>) => {
+      // Fetch User Progress
+      .addCase(fetchUserProgress.pending, handlePending)
+      .addCase(fetchUserProgress.fulfilled, (state, action: PayloadAction<OKRState['userProgress']>) => {
         state.loading = false;
         state.userProgress = action.payload;
-      }
-    );
-    builder.addCase(fetchUserProgress.rejected, handleRejected);
+      })
+      .addCase(fetchUserProgress.rejected, handleRejected);
   },
 });
 

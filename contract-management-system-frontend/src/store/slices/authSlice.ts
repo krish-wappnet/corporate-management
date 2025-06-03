@@ -1,11 +1,22 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import type { RootState } from "../rootReducer";
 import api, { setToken } from "../../services/api";
+import type { AxiosError } from 'axios';
+
+interface ApiErrorResponse {
+  message: string;
+}
 
 interface AuthState {
-  user: User | null;
+  user: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+  } | null;
   token: string | null;
-  isAuthenticated: boolean;
+  refreshToken: string | null;
   loading: boolean;
   error: string | null;
 }
@@ -46,40 +57,27 @@ if (token) {
 const initialState: AuthState = {
   user: userFromStorage ? JSON.parse(userFromStorage) : null,
   token: token,
-  isAuthenticated: !!token && !isTokenExpired(token),
+  refreshToken: localStorage.getItem('refreshToken'),
   loading: false,
   error: null,
 };
 
 export const login = createAsyncThunk(
   "auth/login",
-  async (
-    { email, password }: { email: string; password: string },
-    { rejectWithValue }
-  ) => {
+  async (credentials: { email: string; password: string }, { rejectWithValue }) => {
     try {
-      const response = await api.post("/auth/login", { email, password });
-
-      if (!response.data.access_token || !response.data.user) {
-        throw new Error("Invalid response from server");
-      }
-
-      const { access_token, user } = response.data;
-
-      setToken(access_token);
-      localStorage.setItem("token", access_token);
-      localStorage.setItem("user", JSON.stringify(user));
-
-      return {
-        user,
-        access_token,
-      };
-    } catch (error: unknown) {
-      console.error("Login error:", error);
-      if (error && typeof error === "object" && "response" in error && error.response && typeof error.response === "object" && "data" in error.response && error.response.data && typeof error.response.data === "object" && "message" in error.response.data) {
-        return rejectWithValue(error.response.data.message || "Login failed. Please try again.");
-      }
-      return rejectWithValue("Login failed. Please try again.");
+      const response = await api.post("/auth/login", credentials);
+      const { token, refreshToken, user } = response.data;
+      
+      localStorage.setItem("token", token);
+      localStorage.setItem("refreshToken", refreshToken);
+      
+      return { token, refreshToken, user };
+    } catch (error) {
+      const apiError = error as AxiosError<ApiErrorResponse>;
+      return rejectWithValue(
+        apiError.response?.data?.message || "Failed to login"
+      );
     }
   }
 );
@@ -168,18 +166,19 @@ export const loadUser = createAsyncThunk<User, void, { state: RootState }>(
   }
 );
 
-export const logout = createAsyncThunk<boolean, void, { state: RootState }>(
+export const logout = createAsyncThunk(
   "auth/logout",
   async (_, { rejectWithValue }) => {
     try {
+      await api.post("/auth/logout");
       localStorage.removeItem("token");
-      localStorage.removeItem("user");
+      localStorage.removeItem("refreshToken");
       setToken("");
-      return true;
-    } catch (error: any) {
-      console.error("Logout error:", error);
+      return null;
+    } catch (error) {
+      const apiError = error as AxiosError<ApiErrorResponse>;
       return rejectWithValue(
-        error.response?.data?.message || "Failed to log out"
+        apiError.response?.data?.message || "Failed to logout"
       );
     }
   }
@@ -194,17 +193,26 @@ const authSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    builder.addCase(logout.fulfilled, (state) => {
-      state.user = null;
-      state.token = null;
-      state.isAuthenticated = false;
-      state.loading = false;
-      state.error = null;
-    });
-    builder.addCase(logout.rejected, (state, action) => {
-      state.loading = false;
-      state.error = action.payload as string;
-    });
+    builder
+      .addCase(login.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(login.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload.user;
+        state.token = action.payload.token;
+        state.refreshToken = action.payload.refreshToken;
+      })
+      .addCase(login.rejected, (state, action) => {
+        state.loading = false;
+        state.error = typeof action.payload === "string" ? action.payload : "Failed to login";
+      })
+      .addCase(logout.fulfilled, (state) => {
+        state.user = null;
+        state.token = null;
+        state.refreshToken = null;
+      });
 
     builder.addCase(loadUser.pending, (state) => {
       state.loading = true;
@@ -212,7 +220,6 @@ const authSlice = createSlice({
     });
     builder.addCase(loadUser.fulfilled, (state, action) => {
       state.loading = false;
-      state.isAuthenticated = true;
       state.user = action.payload;
       state.error = null;
       if (action.payload) {
@@ -221,37 +228,11 @@ const authSlice = createSlice({
     });
     builder.addCase(loadUser.rejected, (state, action) => {
       state.loading = false;
-      state.isAuthenticated = false;
       state.user = null;
       state.token = null;
       state.error = action.payload as string;
       localStorage.removeItem("token");
       localStorage.removeItem("user");
-    });
-
-    builder.addCase(login.pending, (state) => {
-      state.loading = true;
-      state.error = null;
-    });
-    builder.addCase(login.fulfilled, (state, action) => {
-      state.loading = false;
-      state.isAuthenticated = true;
-      state.user = action.payload.user;
-      state.token = action.payload.access_token;
-      state.error = null;
-      if (action.payload.access_token) {
-        setToken(action.payload.access_token);
-      }
-    });
-    builder.addCase(login.rejected, (state, action) => {
-      state.loading = false;
-      state.isAuthenticated = false;
-      state.user = null;
-      state.token = null;
-      state.error = action.payload as string;
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      setToken("");
     });
 
     builder.addCase(register.pending, (state) => {
@@ -260,7 +241,6 @@ const authSlice = createSlice({
     });
     builder.addCase(register.fulfilled, (state, action) => {
       state.loading = false;
-      state.isAuthenticated = true;
       state.user = action.payload.user;
       state.token = action.payload.access_token;
       state.error = null;
@@ -270,7 +250,6 @@ const authSlice = createSlice({
     });
     builder.addCase(register.rejected, (state, action) => {
       state.loading = false;
-      state.isAuthenticated = false;
       state.user = null;
       state.token = null;
       state.error = action.payload as string;
@@ -283,9 +262,8 @@ const authSlice = createSlice({
 
 export const { clearError } = authSlice.actions;
 
-export const selectCurrentUser = (state: RootState) => state.auth.user;
-export const selectIsAuthenticated = (state: RootState) =>
-  state.auth.isAuthenticated;
+export const selectAuthUser = (state: RootState) => state.auth.user;
+export const selectAuthToken = (state: RootState) => state.auth.token;
 export const selectAuthLoading = (state: RootState) => state.auth.loading;
 export const selectAuthError = (state: RootState) => state.auth.error;
 

@@ -4,14 +4,12 @@ import { fetchCategories, deleteCategory } from '../../store/slices/kpiSlice';
 import { Table, Button, Space, Card, message, Popconfirm } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../../hooks';
 
 
 
 const CategoriesListPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const { categories, loading } = useAppSelector((state) => state.kpis);
-  const { user } = useAuth();
   const isAdmin = true; // Always enable delete functionality
 
   useEffect(() => {
@@ -23,7 +21,7 @@ const CategoriesListPage: React.FC = () => {
       title: 'Name',
       dataIndex: 'name',
       key: 'name',
-      render: (text: string, record: any) => (
+      render: (text: string, record) => (
         <Link
           to={`/categories/${record.id}`}
           className="text-blue-600 hover:text-blue-800 font-medium transition-colors"
@@ -44,7 +42,7 @@ const CategoriesListPage: React.FC = () => {
       title: 'Actions',
       key: 'actions',
       width: 120,
-      render: (_: any, record: any) => (
+      render: (_, record) => (
         <Space size="small">
           <Link to={`/categories/edit/${record.id}`}>
             <Button

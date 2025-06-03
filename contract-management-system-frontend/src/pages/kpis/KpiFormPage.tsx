@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect} from 'react';
 import dayjs from 'dayjs';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/store';
@@ -11,6 +11,7 @@ import {
 } from '../../store/slices/kpiSlice';
 import { fetchUsers } from '../../store/slices/userSlice';
 import { KpiType } from '../../types/kpi';
+import type { KpiMetric, KpiStatus } from '../../types/kpi';
 import { 
   Form, 
   Input, 
@@ -23,14 +24,29 @@ import {
   Col, 
   Divider, 
   Space, 
-  Typography 
+  Typography,
 } from 'antd';
 import { showSuccess, showError, showWarning } from '../../utils/toast';
 import { PlusOutlined, MinusCircleOutlined } from '@ant-design/icons';
+import { isAxiosError } from 'axios';
 
 const { Title } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
+
+interface KpiFormValues {
+  title: string;
+  description: string;
+  type: KpiType;
+  status: KpiStatus;
+  userId: string;
+  startDate: dayjs.Dayjs;
+  endDate: dayjs.Dayjs;
+  targetValue: number;
+  currentValue: number;
+  weight: number;
+  metrics?: KpiMetric[];
+}
 
 const KpiFormPage: React.FC = () => {
   const [form] = Form.useForm();
@@ -41,7 +57,7 @@ const KpiFormPage: React.FC = () => {
   const { loading, categories = [] } = useAppSelector((state) => state.kpis);
   const { user: currentUser } = useAppSelector((state) => state.auth);
   const { users: usersResponse, loading: usersLoading } = useAppSelector((state) => state.users);
-  const users = usersResponse?.items || [];
+  const users = usersResponse || [];
   
   const [newCategoryName, setNewCategoryName] = useState('');
   const [isAddingCategory, setIsAddingCategory] = useState(false);
@@ -86,11 +102,7 @@ const KpiFormPage: React.FC = () => {
   };
   
   // Check if user has admin or manager role
-  const isAdminOrManager = currentUser?.roles?.some((role: string | { name?: string }) => {
-    if (!role) return false;
-    const roleName = typeof role === 'string' ? role : (role as { name?: string }).name;
-    return roleName === 'ADMIN' || roleName === 'MANAGER';
-  }) ?? false;
+  const isAdminOrManager = currentUser?.role === 'ADMIN' || currentUser?.role === 'MANAGER';
   
   // Removed unused state
   const [kpiType, setKpiType] = useState<KpiType>(KpiType.QUANTITATIVE);
@@ -116,17 +128,19 @@ const KpiFormPage: React.FC = () => {
     }
   }, [dispatch, id, form, navigate]);
   
-  const onFinish = async (values: any) => {
+  const onFinish = async (values: KpiFormValues) => {
     try {
-      // Convert status to lowercase to match backend enum
-      const status = values.status.toLowerCase();
-      
       const kpiData = {
         ...values,
         startDate: values.startDate.format('YYYY-MM-DD'),
         endDate: values.endDate.format('YYYY-MM-DD'),
-        metrics: values.metrics || [],
-        status, // Ensure status is in the correct case
+        metrics: values.metrics?.map(m => ({
+          name: m.name,
+          target: m.target,
+          current: 0,
+          unit: m.unit
+        })) || [],
+        status: values.status.toLowerCase() as KpiStatus,
       };
       
       // If userId is not set and current user is not admin, use current user's ID
@@ -144,8 +158,13 @@ const KpiFormPage: React.FC = () => {
       
       navigate('/kpis');
     } catch (error) {
-      showError(`Failed to ${id ? 'update' : 'create'} KPI`);
-      console.error('Error saving KPI:', error);
+      if (isAxiosError(error)) {
+        const errorMessage = error.response?.data?.message || 'Failed to save KPI';
+        showError(errorMessage);
+      } else {
+        const err = error as Error;
+        showError(err.message || 'Failed to save KPI');
+      }
     }
   };
   
@@ -157,12 +176,12 @@ const KpiFormPage: React.FC = () => {
     }
   };
   
-  const disabledDate = (current: any) => {
+  const disabledDate = (current: dayjs.Dayjs) => {
     // Can not select days before today
     return current && current < dayjs().startOf('day');
   };
   
-  const disabledEndDate = (current: any) => {
+  const disabledEndDate = (current: dayjs.Dayjs) => {
     const startDate = form.getFieldValue('startDate');
     if (!startDate) {
       return current && current < dayjs().startOf('day');
@@ -217,7 +236,7 @@ const KpiFormPage: React.FC = () => {
                 >
                   {users.map((user) => (
                     <Select.Option key={user.id} value={user.id}>
-                      {`${user.firstName} ${user.lastName}`} ({user.roles?.[0] || 'No Role'})
+                      {`${user.firstName} ${user.lastName}`} ({user.role || 'No Role'})
                     </Select.Option>
                   ))}
                 </Select>

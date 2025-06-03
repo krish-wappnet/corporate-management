@@ -24,8 +24,7 @@ import {
 import { 
   getFeedbackCycleById, 
   createFeedbackCycle, 
-  updateFeedbackCycle,
-  type FeedbackCycle
+  updateFeedbackCycle
 } from '../../api/feedbackApi';
 import { 
   CycleType, 
@@ -51,6 +50,31 @@ const statusIcons = {
   [CycleStatus.CANCELLED]: <StopOutlined />
 };
 
+interface FeedbackTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  questions: Array<{
+    id: string;
+    text: string;
+    type: 'rating' | 'text' | 'multiple_choice';
+    options?: string[];
+  }>;
+}
+
+interface FeedbackCycleFormValues {
+  name: string;
+  description: string;
+  type: CycleType;
+  startDate: dayjs.Dayjs;
+  endDate: dayjs.Dayjs;
+  status: CycleStatus;
+  feedbackTemplates: {
+    questions: string[];
+    ratingCategories: string[];
+  };
+}
+
 const FeedbackCycleForm: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id?: string }>();
@@ -70,42 +94,51 @@ const FeedbackCycleForm: React.FC = () => {
     }
   };
 
-  const onFinish = async (values: any) => {
+  const onFinish = async (values: FeedbackCycleFormValues) => {
     try {
       setLoading(true);
       
-      // Filter out empty questions and rating categories
-      const filteredTemplates = {
-        questions: values.feedbackTemplates.questions.filter((q: string) => q.trim() !== ''),
-        ratingCategories: values.feedbackTemplates.ratingCategories.filter((c: string) => c.trim() !== '')
+      const feedbackTemplate: FeedbackTemplate = {
+        id: 'template-1',
+        name: 'Default Template',
+        description: 'Default feedback template',
+        questions: [
+          ...values.feedbackTemplates.questions.map((q, index) => ({
+            id: `q-${index}`,
+            text: q,
+            type: 'text' as const
+          })),
+          ...values.feedbackTemplates.ratingCategories.map((c, index) => ({
+            id: `r-${index}`,
+            text: c,
+            type: 'rating' as const
+          }))
+        ]
       };
       
       const payload = {
         name: values.name,
         description: values.description,
-        type: values.type.toLowerCase(), // Convert to lowercase to match backend expectations
+        type: values.type.toLowerCase(),
         startDate: values.startDate.format('YYYY-MM-DD'),
         endDate: values.endDate.format('YYYY-MM-DD'),
-        status: values.status.toLowerCase(), // Convert to lowercase to match backend expectations
-        feedbackTemplates: filteredTemplates
+        status: values.status.toLowerCase(),
+        feedbackTemplates: [feedbackTemplate]
       };
       
-      let response: FeedbackCycle;
-      
       if (id) {
-        response = await updateFeedbackCycle(id, payload);
+        await updateFeedbackCycle(id, payload);
         message.success('Feedback cycle updated successfully');
       } else {
-        response = await createFeedbackCycle(payload);
+        await createFeedbackCycle(payload);
         message.success('Feedback cycle created successfully');
       }
       
-      // Navigate to the cycles list after successful submission
       navigate('/feedback/cycles');
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving feedback cycle:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to save feedback cycle';
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save feedback cycle';
       message.error(errorMessage);
     } finally {
       setLoading(false);
@@ -124,23 +157,26 @@ const FeedbackCycleForm: React.FC = () => {
         setLoading(true);
         const data = await getFeedbackCycleById(id);
         
-        // Format the data for the form
+        // Transform the feedback templates data for the form
+        const template = data.feedbackTemplates?.[0];
+        const questions = template?.questions?.filter(q => q.type === 'text').map(q => q.text) || [''];
+        const ratingCategories = template?.questions?.filter(q => q.type === 'rating').map(q => q.text) || ['Communication', 'Technical Skills', 'Teamwork'];
+        
         form.setFieldsValue({
           ...data,
           startDate: data.startDate ? dayjs(data.startDate) : dayjs(),
           endDate: data.endDate ? dayjs(data.endDate) : dayjs().add(3, 'months'),
-          // Ensure feedbackTemplates has the correct structure
           feedbackTemplates: {
-            questions: data.feedbackTemplates?.questions || ['', ''],
-            ratingCategories: data.feedbackTemplates?.ratingCategories || ['Communication', 'Technical Skills', 'Teamwork']
+            questions,
+            ratingCategories
           }
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Error loading feedback cycle:', error);
-        const errorMessage = error.response?.data?.message || 'Failed to load feedback cycle';
+        const errorMessage = error instanceof Error ? error.message : 'Failed to load feedback cycle';
         message.error(errorMessage);
         // Redirect to cycles list if the cycle is not found
-        if (error.response?.status === 404) {
+        if (error instanceof Error && 'response' in error && (error as { response?: { status?: number } }).response?.status === 404) {
           navigate('/feedback/cycles');
         }
       } finally {

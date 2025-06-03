@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { useAppSelector } from '../../store/store';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { Feedback } from '../../types/feedback.types';
 import { format } from 'date-fns';
 import { 
@@ -26,21 +25,21 @@ import {
   ClockCircleOutlined
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
+import type { TablePaginationConfig } from 'antd/es/table';
+import { message } from 'antd';
+import api from '../../services/api';
 
 const { Title, Text } = Typography;
 
-
 const AllFeedback: React.FC = () => {
-  const token = useAppSelector((state) => state.auth.token);
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [pagination, setPagination] = useState({
+  const [loading, setLoading] = useState(false);
+  const [pagination, setPagination] = useState<TablePaginationConfig>({
     current: 1,
     pageSize: 10,
-    total: 0,
   });
   
-  const [stats, setStats] = useState({
+  const [stats] = useState({
     total: 0,
     submitted: 0,
     pending: 0,
@@ -49,57 +48,45 @@ const AllFeedback: React.FC = () => {
   
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const fetchFeedbacks = async (page: number, limit: number): Promise<void> => {
+  // Create stable references to pagination values
+  const paginationRef = useRef(pagination);
+  useEffect(() => {
+    paginationRef.current = pagination;
+  }, [pagination]);
+
+  const fetchFeedbacks = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(
-        `http://localhost:3000/feedback?page=${page}&limit=${limit}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setFeedbacks(data.items);
+      const response = await api.get('/feedbacks', {
+        params: {
+          page: paginationRef.current.current,
+          limit: paginationRef.current.pageSize,
+        },
+      });
+      setFeedbacks(response.data.items);
       setPagination(prev => ({
         ...prev,
-        current: data.page,
-        pageSize: data.limit,
-        total: data.total,
+        total: response.data.total,
       }));
     } catch (error) {
       console.error('Error fetching feedbacks:', error);
-      if (error instanceof Error) {
-        console.error('Error details:', error.message);
-      }
+      message.error('Failed to fetch feedbacks');
     } finally {
       setLoading(false);
     }
-  };
+  }, []); // No dependencies needed since we use ref
 
-  // Fetch feedbacks when pagination changes
   useEffect(() => {
-    fetchFeedbacks(pagination.current, pagination.pageSize);
-  }, [pagination.current, pagination.pageSize]);
+    fetchFeedbacks();
+  }, [fetchFeedbacks]);
 
-  const handleTableChange = (newPagination: any) => {
-    setPagination(prev => ({
-      ...prev,
-      current: newPagination.current,
-      pageSize: newPagination.pageSize,
-    }));
+  const handleTableChange = (newPagination: TablePaginationConfig) => {
+    setPagination(newPagination);
   };
 
   const handleRefresh = () => {
     setIsRefreshing(true);
-    fetchFeedbacks(pagination.current, pagination.pageSize)
+    fetchFeedbacks()
       .finally(() => setIsRefreshing(false));
   };
 
@@ -209,10 +196,6 @@ const AllFeedback: React.FC = () => {
       render: (date: string) => format(new Date(date), 'MMM dd, yyyy'),
     },
   ];
-
-  useEffect(() => {
-    fetchFeedbacks(1, 10);
-  }, []);
 
   return (
     <div style={{ padding: '24px' }}>

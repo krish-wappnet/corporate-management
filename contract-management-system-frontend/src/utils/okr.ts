@@ -1,4 +1,4 @@
-import type { Okr, KeyResult, OkrStatus, OkrType, KeyResultStatus } from '../types/okr';
+import type { Okr, KeyResult, OkrStatus, OkrType } from '../types/okr';
 
 export const getOkrStatusColor = (status: OkrStatus): string => {
   switch (status) {

@@ -32,7 +32,7 @@ const EditCategoryPage: React.FC = () => {
     }
   }, [category, form]);
 
-  const onFinish = async (values: any) => {
+  const onFinish = async (values) => {
     if (!id) return;
     
     try {
@@ -45,7 +45,7 @@ const EditCategoryPage: React.FC = () => {
       
       message.success('Category updated successfully');
       navigate('/categories');
-    } catch (error) {
+    } catch {
       message.error('Failed to update category');
     } finally {
       setLoading(false);

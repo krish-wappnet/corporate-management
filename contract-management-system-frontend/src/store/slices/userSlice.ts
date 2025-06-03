@@ -2,33 +2,34 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import type { RootState } from '../rootReducer';
 import api from '../../services/api';
+import type { AxiosError } from 'axios';
 
-// Helper type for API error responses
-type ApiError = {
+interface ApiErrorResponse {
   message: string;
-  status?: number;
-};
+}
 
-// Define the API User type that matches the API response
 interface User {
   id: string;
   email: string;
   firstName: string;
   lastName: string;
-  roles: string[];
-  role?: string; // For backward compatibility
-  position: string;
-  department: string;
-  managerId: string | null;
-  manager?: {
-    name: string;
-  };
+  role: string;
+  departmentId?: string;
   createdAt: string;
   updatedAt: string;
-  password?: string; // Only present in some responses
 }
 
-// Type for the users response from the API
+interface CreateUserDto {
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  departmentId?: string;
+  password: string;
+}
+
+type UpdateUserDto = Partial<Omit<CreateUserDto, 'password'>>;
+
 interface UsersResponse {
   items: User[];
   total: number;
@@ -39,102 +40,104 @@ interface UsersResponse {
   hasPrevious: boolean;
 }
 
-// Type for the Redux state
 interface UserState {
-  users: UsersResponse | null;
+  users: User[];
   currentUser: User | null;
   loading: boolean;
   error: string | null;
+  total: number;
+  filters: {
+    page: number;
+    limit: number;
+    search?: string;
+  };
 }
 
-
-
 const initialState: UserState = {
-  users: null,
+  users: [],
   currentUser: null,
   loading: false,
   error: null,
+  total: 0,
+  filters: {
+    page: 1,
+    limit: 10,
+  },
 };
 
-// Async thunks
-// Types for fetchUsers parameters
-type FetchUsersParams = {
-  page?: number;
-  limit?: number;
-};
-
-export const fetchUsers = createAsyncThunk<UsersResponse, FetchUsersParams, { rejectValue: ApiError }>(
+export const fetchUsers = createAsyncThunk(
   'users/fetchUsers',
-  async ({ page = 1, limit = 10 }, { rejectWithValue }) => {
+  async (params: { page?: number; limit?: number; search?: string }, { rejectWithValue }) => {
     try {
-      const response = await api.get('/users', {
-        params: { page, limit },
-      });
-      return response.data;
-    } catch (error: any) {
-      return rejectWithValue({
-        message: error.response?.data?.message || 'Failed to fetch users',
-        status: error.response?.status
-      });
+      const response = await api.get('/users', { params });
+      return response.data as UsersResponse;
+    } catch (error) {
+      const apiError = error as AxiosError<ApiErrorResponse>;
+      return rejectWithValue(
+        apiError.response?.data?.message || 'Failed to fetch users'
+      );
     }
   }
 );
 
-export const fetchUserById = createAsyncThunk<User, string, { rejectValue: string }>(
+export const fetchUserById = createAsyncThunk(
   'users/fetchUserById',
-  async (id, { rejectWithValue }) => {
+  async (id: string, { rejectWithValue }) => {
     try {
       const response = await api.get(`/users/${id}`);
-      return response.data;
-    } catch (error: any) {
+      return response.data as User;
+    } catch (error) {
+      const apiError = error as AxiosError<ApiErrorResponse>;
       return rejectWithValue(
-        error.response?.data?.message || 'Failed to fetch user'
+        apiError.response?.data?.message || 'Failed to fetch user'
       );
     }
   }
 );
 
-export const createUser = createAsyncThunk<User, Partial<User>, { rejectValue: string }>(
+export const createUser = createAsyncThunk(
   'users/createUser',
-  async (userData, { rejectWithValue }) => {
+  async (userData: CreateUserDto, { rejectWithValue }) => {
     try {
       const response = await api.post('/users', userData);
-      return response.data;
-    } catch (error: any) {
+      return response.data as User;
+    } catch (error) {
+      const apiError = error as AxiosError<ApiErrorResponse>;
       return rejectWithValue(
-        error.response?.data?.message || 'Failed to create user'
+        apiError.response?.data?.message || 'Failed to create user'
       );
     }
   }
 );
 
-export const updateUser = createAsyncThunk<
-  User,
-  { id: string; userData: Partial<User> },
-  { rejectValue: string }
->(
+export const updateUser = createAsyncThunk(
   'users/updateUser',
-  async ({ id, userData }, { rejectWithValue }) => {
+  async (
+    { id, userData }: { id: string; userData: UpdateUserDto },
+    { rejectWithValue }
+  ) => {
     try {
       const response = await api.put(`/users/${id}`, userData);
-      return response.data;
-    } catch (error: any) {
+      return response.data as User;
+    } catch (error) {
+      const apiError = error as AxiosError<ApiErrorResponse>;
       return rejectWithValue(
-        error.response?.data?.message || 'Failed to update user'
+        apiError.response?.data?.message || 'Failed to update user'
       );
     }
   }
 );
 
-export const deleteUser = createAsyncThunk<string, string, { rejectValue: string }>(
+export const deleteUser = createAsyncThunk(
   'users/deleteUser',
-  async (id, { rejectWithValue }) => {
+  async (id: string, { rejectWithValue }) => {
     try {
       await api.delete(`/users/${id}`);
       return id;
-    } catch (error: any) {
+    } catch (error) {
+      const apiError = error as AxiosError<ApiErrorResponse>;
       return rejectWithValue(
-        error.response?.data?.message || 'Failed to delete user'
+        apiError.response?.data?.message || 'Failed to delete user'
       );
     }
   }
@@ -152,22 +155,23 @@ const userSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    // Fetch Users
     builder
       .addCase(fetchUsers.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchUsers.fulfilled, (state, action: PayloadAction<UsersResponse>) => {
+      .addCase(fetchUsers.fulfilled, (state, action) => {
         state.loading = false;
-        state.users = action.payload;
+        state.users = action.payload.items;
+        state.total = action.payload.total;
+        state.filters.page = action.payload.page;
+        state.filters.limit = action.payload.limit;
       })
       .addCase(fetchUsers.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload as unknown as string;
+        state.error = typeof action.payload === 'string' ? action.payload : 'Failed to fetch users';
       });
 
-    // Fetch User By Id
     builder.addCase(fetchUserById.pending, (state) => {
       state.loading = true;
       state.error = null;
@@ -190,7 +194,6 @@ const userSlice = createSlice({
       }
     });
 
-    // Create User
     builder.addCase(createUser.pending, (state) => {
       state.loading = true;
       state.error = null;
@@ -199,13 +202,8 @@ const userSlice = createSlice({
       createUser.fulfilled,
       (state, action: PayloadAction<User>) => {
         state.loading = false;
-        if (state.users) {
-          state.users = {
-            ...state.users,
-            items: [action.payload, ...(state.users.items || [])],
-            total: (state.users.total || 0) + 1,
-          };
-        }
+        state.users = [...state.users, action.payload];
+        state.total = state.total + 1;
       }
     );
     builder.addCase(createUser.rejected, (state, action) => {
@@ -215,7 +213,6 @@ const userSlice = createSlice({
         : 'Failed to create user';
     });
 
-    // Update User
     builder.addCase(updateUser.pending, (state) => {
       state.loading = true;
       state.error = null;
@@ -224,19 +221,9 @@ const userSlice = createSlice({
       updateUser.fulfilled,
       (state, action: PayloadAction<User>) => {
         state.loading = false;
-        if (state.users) {
-          const updatedItems = [...(state.users.items || [])];
-          const index = updatedItems.findIndex(
-            (user) => user.id === action.payload.id
-          );
-          if (index !== -1) {
-            updatedItems[index] = action.payload;
-            state.users = {
-              ...state.users,
-              items: updatedItems
-            };
-          }
-        }
+        state.users = state.users.map((user) =>
+          user.id === action.payload.id ? action.payload : user
+        );
       }
     );
     builder.addCase(updateUser.rejected, (state, action) => {
@@ -245,16 +232,35 @@ const userSlice = createSlice({
         ? action.payload
         : 'Failed to update user';
     });
+
+    builder.addCase(deleteUser.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    });
+    builder.addCase(
+      deleteUser.fulfilled,
+      (state, action: PayloadAction<string>) => {
+        state.loading = false;
+        state.users = state.users.filter((user) => user.id !== action.payload);
+        state.total = state.total - 1;
+      }
+    );
+    builder.addCase(deleteUser.rejected, (state, action) => {
+      state.loading = false;
+      state.error = typeof action.payload === 'string'
+        ? action.payload
+        : 'Failed to delete user';
+    });
   },
 });
 
 export const { clearCurrentUser, clearError } = userSlice.actions;
 
-export const selectUsers = (state: RootState) => state.users.users?.items || [];
+export const selectUsers = (state: RootState) => state.users.users;
 export const selectUsersResponse = (state: RootState) => state.users.users;
 export const selectCurrentUser = (state: RootState) => state.users.currentUser;
 export const selectUsersLoading = (state: RootState) => state.users.loading;
 export const selectUsersError = (state: RootState) => state.users.error;
-export const selectTotalUsers = (state: RootState) => state.users.users?.total || 0;
+export const selectTotalUsers = (state: RootState) => state.users.total;
 
 export default userSlice.reducer;

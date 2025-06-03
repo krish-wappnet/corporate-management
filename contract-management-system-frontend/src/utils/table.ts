@@ -30,7 +30,7 @@ export const handleTableChange = <T>(
   filters: Record<string, FilterValue | null>,
   sorter: SorterResult<T> | SorterResult<T>[],
   setTableParams: React.Dispatch<React.SetStateAction<TableParams<T>>>,
-  onFilterChange?: (filters: Record<string, any>) => void
+  onFilterChange?: (filters: Record<string, FilterValue | null>) => void
 ) => {
   const sorterResult = Array.isArray(sorter) ? sorter[0] : sorter;
   

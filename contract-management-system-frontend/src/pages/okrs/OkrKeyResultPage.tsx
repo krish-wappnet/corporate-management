@@ -1,11 +1,11 @@
 import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { fetchKeyResultById } from '../../store/slices/okrSlice';
-import { Button, Card, Descriptions, Space, Typography, Progress, Tag, Divider, Table } from 'antd';
+import { selectKeyResultById } from '../../store/slices/okrSlice';
+import { Button, Card, Descriptions, Space, Typography, Progress, Tag,Table } from 'antd';
 import { EditOutlined, ArrowLeftOutlined, BarChartOutlined } from '@ant-design/icons';
 import { formatDate } from '../../utils/date';
-import { KeyResultStatus, getKeyResultStatusColor } from '../../utils/okr';
+import { getKeyResultStatus } from '../../utils/okr';
 
 const { Title, Text } = Typography;
 
@@ -14,15 +14,17 @@ const OkrKeyResultPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   
-  const { currentKeyResult, loading, error } = useAppSelector((state) => ({
-    currentKeyResult: state.okrs.currentKeyResult,
+  const currentKeyResult = useAppSelector((state) => 
+    id ? selectKeyResultById(id)(state) : null
+  );
+  const { loading, error } = useAppSelector((state) => ({
     loading: state.okrs.loading,
     error: state.okrs.error,
   }));
 
   useEffect(() => {
     if (id) {
-      dispatch(fetchKeyResultById(id));
+      // No need to fetch since we're using the selector
     }
   }, [dispatch, id]);
 
@@ -41,13 +43,14 @@ const OkrKeyResultPage: React.FC = () => {
     startValue,
     targetValue,
     currentValue,
-    progress = 0,
     status,
-    okrId,
     updates = [],
     createdAt,
     updatedAt,
   } = currentKeyResult;
+
+  // Calculate progress
+  const progress = ((currentValue - startValue) / (targetValue - startValue)) * 100;
 
   const columns = [
     {
@@ -102,7 +105,7 @@ const OkrKeyResultPage: React.FC = () => {
             <Tag color="blue">{type}</Tag>
           </Descriptions.Item>
           <Descriptions.Item label="Status">
-            <Tag color={getKeyResultStatusColor(status)}>
+            <Tag color={getKeyResultStatus(currentKeyResult).color}>
               {status.replace('_', ' ').toUpperCase()}
             </Tag>
           </Descriptions.Item>

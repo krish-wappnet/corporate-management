@@ -20,6 +20,16 @@ const Dashboard: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
+  // Handle logout
+  const handleLogout = useCallback(async () => {
+    try {
+      await dispatch(logout()).unwrap();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  }, [dispatch, navigate]);
+
   // Reset the inactivity timer
   const resetInactivityTimer = useCallback(() => {
     // Clear existing timers
@@ -47,7 +57,7 @@ const Dashboard: React.FC = () => {
         });
       }, 1000);
     }, 30 * 60 * 1000); // 30 minutes
-  }, []);
+  }, [handleLogout]);
 
   // Set up event listeners for user activity
   useEffect(() => {
@@ -76,16 +86,6 @@ const Dashboard: React.FC = () => {
     };
   }, [user, resetInactivityTimer]);
 
-  // Handle logout
-  const handleLogout = useCallback(async () => {
-    try {
-      await dispatch(logout()).unwrap();
-      navigate('/login');
-    } catch (error) {
-      console.error('Logout failed:', error);
-    }
-  }, [dispatch, navigate]);
-  
   // Handle stay logged in
   const handleStayLoggedIn = useCallback(() => {
     setShowTimeoutModal(false);
@@ -157,8 +157,16 @@ const Dashboard: React.FC = () => {
       <Modal
         isOpen={showTimeoutModal}
         onClose={() => setShowTimeoutModal(false)}
-  
       >
+        <div className="text-center">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Session Timeout</h3>
+          <p className="text-gray-600 mb-4">
+            Your session will expire in {timeLeft} seconds due to inactivity.
+          </p>
+          <p className="text-sm text-gray-500">
+            Would you like to stay logged in?
+          </p>
+        </div>
         <div className="mt-4 flex justify-end space-x-3">
           <button
             type="button"

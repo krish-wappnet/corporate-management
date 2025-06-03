@@ -33,15 +33,16 @@ export const okrApi = {
       const response = await api.post(API_URL, data);
       console.log('OKR created successfully:', response.data);
       return response.data;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error creating OKR:', error);
-      if (error.response) {
-        console.error('Response data:', error.response.data);
-        console.error('Response status:', error.response.status);
-        console.error('Response headers:', error.response.headers);
-      } else if (error.request) {
-        console.error('No response received:', error.request);
-      } else {
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response: { data: unknown; status: number; headers: unknown } };
+        console.error('Response data:', axiosError.response.data);
+        console.error('Response status:', axiosError.response.status);
+        console.error('Response headers:', axiosError.response.headers);
+      } else if (error && typeof error === 'object' && 'request' in error) {
+        console.error('No response received:', (error as { request: unknown }).request);
+      } else if (error instanceof Error) {
         console.error('Error setting up request:', error.message);
       }
       throw error;

@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../../store/store';
 import { fetchKpis } from '../../store/slices/kpiSlice';
 import { fetchUsers } from '../../store/slices/userSlice';
-import type { User } from '../../types/user';
 import type { Kpi } from '../../types/kpi';
 import { KpiStatus } from '../../types/kpi';
 import { 
@@ -38,10 +37,14 @@ import dayjs from 'dayjs';
 
 // Using Kpi and KpiStatus from '../../types/kpi'
 
-interface ApiUser extends Omit<User, 'role'> {
+interface UserData {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
   role?: string;
-  roles: string[];
-  managerId: string | null;
+  roles?: string[];
+  managerId?: string | null;
   manager?: {
     name: string;
   };
@@ -61,7 +64,7 @@ const KpiAnalyticsPage: React.FC = () => {
     loading: state.kpis.loading,
   }));
   
-  const users = useAppSelector((state) => (state.users.users?.items || []) as ApiUser[]);
+  const { users = [] } = useAppSelector((state) => state.users) as { users: UserData[] };
   
   const [completionRate, setCompletionRate] = useState<{rate: number; completed: number; total: number} | null>(null);
   const [progressByCategory, setProgressByCategory] = useState<Array<{category: string; avgProgress: number; totalKpis: number}>>([]);
@@ -69,7 +72,7 @@ const KpiAnalyticsPage: React.FC = () => {
   
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs]>([
     dayjs().startOf('month'),
-    dayjs().endOf('month'),
+    dayjs().endOf('month')
   ]);
   
   const [selectedUserId, setSelectedUserId] = useState<string | undefined>();
@@ -190,7 +193,7 @@ const KpiAnalyticsPage: React.FC = () => {
     {
       title: 'Progress',
       key: 'progress',
-      render: (_: any, record: Kpi) => (
+      render: (_: unknown, record: Kpi) => (
         <div>
           <div>{`${record.currentValue} / ${record.targetValue}`}</div>
           <Progress
@@ -243,8 +246,8 @@ const KpiAnalyticsPage: React.FC = () => {
               ))}
             </Select>
             <RangePicker
-              value={dateRange as any}
-              onChange={(dates: any) => {
+              value={dateRange}
+              onChange={(dates) => {
                 if (dates && dates[0] && dates[1]) {
                   setDateRange([dates[0], dates[1]]);
                 } else {

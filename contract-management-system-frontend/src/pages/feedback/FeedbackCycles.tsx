@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Button, 
@@ -29,10 +29,11 @@ import {
   MoreOutlined
 } from '@ant-design/icons';
 import { getFeedbackCycles } from '../../api/feedbackApi';
-import type { FeedbackCycle } from '../../types/feedback.types';
+import type { FeedbackCycle } from '../../api/feedbackApi';
 import { CycleStatus, CycleType } from '../../types/feedback.types';
 
 import dayjs from 'dayjs';
+
 
 const FeedbackCycles: React.FC = () => {
   // User authentication can be added back when needed
@@ -54,7 +55,7 @@ const FeedbackCycles: React.FC = () => {
     active: false
   });
 
-  const fetchCycles = async () => {
+  const fetchCycles = useCallback(async () => {
     try {
       setLoading(true);
       const params = {
@@ -72,12 +73,11 @@ const FeedbackCycles: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, rowsPerPage, filters, searchTerm]);
 
   useEffect(() => {
     fetchCycles();
-  }, [page, rowsPerPage, filters]);
-
+  }, [fetchCycles]);
 
   const handleStatusChange = async (_cycleId: string, newStatus: CycleStatus) => {
     try {
@@ -155,14 +155,14 @@ const FeedbackCycles: React.FC = () => {
     }, 500);
     
     return () => clearTimeout(timer);
-  }, [searchTerm, filters]);
+  }, [searchTerm, filters, fetchCycles]);
 
   const columns = [
     {
       title: 'Name',
       dataIndex: 'name',
       key: 'name',
-      render: (_: any, record: FeedbackCycle) => (
+      render: (_: unknown, record: FeedbackCycle) => (
         <div>
           <div className="font-medium text-gray-900">{record.name}</div>
           {record.description && (
@@ -184,7 +184,7 @@ const FeedbackCycles: React.FC = () => {
     {
       title: 'Period',
       key: 'period',
-      render: (_: any, record: FeedbackCycle) => (
+      render: (_: unknown, record: FeedbackCycle) => (
         <div className="whitespace-nowrap">
           {dayjs(record.startDate).format('MMM D, YYYY')} - {dayjs(record.endDate).format('MMM D, YYYY')}
         </div>
@@ -202,14 +202,14 @@ const FeedbackCycles: React.FC = () => {
           [CycleStatus.PLANNED]: { color: 'default', text: 'Planned' },
         }[status] || { color: 'default', text: status };
         
-        return <Badge status={statusConfig.color as any} text={statusConfig.text} />;
+        return <Badge status={statusConfig.color as 'success' | 'processing' | 'error' | 'default'} text={statusConfig.text} />;
       },
     },
     {
       title: 'Actions',
       key: 'actions',
       width: 150,
-      render: (_: any, record: FeedbackCycle) => {
+      render: (_: unknown, record: FeedbackCycle) => {
         const menu = (
           <Menu>
             <Menu.Item 

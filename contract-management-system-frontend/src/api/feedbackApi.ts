@@ -19,6 +19,27 @@ const getAuthHeaders = (): Record<string, string> => {
   };
 };
 
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string;
+  department?: string;
+  role?: string;
+}
+
+export interface FeedbackTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  questions: Array<{
+    id: string;
+    text: string;
+    type: 'rating' | 'text' | 'multiple_choice';
+    options?: string[];
+  }>;
+}
+
 export interface Feedback {
   id: string;
   type: FeedbackType;
@@ -28,9 +49,9 @@ export interface Feedback {
   improvements?: string;
   status: FeedbackStatus;
   cycleId?: string;
-  fromUser: any; // Replace with User type when available
+  fromUser: User;
   fromUserId: string;
-  toUser: any; // Replace with User type when available
+  toUser: User;
   toUserId: string;
   requestId?: string;
   isAnonymous: boolean;
@@ -42,11 +63,11 @@ export interface FeedbackCycle {
   id: string;
   name: string;
   description?: string;
-  type: string; // Using string instead of CycleType to avoid circular dependency
+  type: string;
   startDate: string;
   endDate: string;
   status: CycleStatus;
-  feedbackTemplates?: any;
+  feedbackTemplates?: FeedbackTemplate[];
   createdAt: string;
   updatedAt: string;
 }
@@ -57,16 +78,71 @@ export interface FeedbackRequest {
   message?: string;
   dueDate: string;
   status: RequestStatus;
-  requester: any; // Replace with User type when available
+  requester: User;
   requesterId: string;
-  recipient: any; // Replace with User type when available
+  recipient: User;
   recipientId: string;
-  subject: any; // Replace with User type when available
+  subject: User;
   subjectId: string;
   cycleId?: string;
   isAnonymous: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface CreateFeedbackData {
+  type: FeedbackType;
+  content: string;
+  ratings: Record<string, number>;
+  strengths?: string;
+  improvements?: string;
+  toUserId: string;
+  requestId?: string;
+  cycleId?: string;
+  isAnonymous: boolean;
+}
+
+export interface UpdateFeedbackData {
+  content?: string;
+  ratings?: Record<string, number>;
+  strengths?: string;
+  improvements?: string;
+  status?: FeedbackStatus;
+  isAnonymous?: boolean;
+}
+
+export interface CreateFeedbackCycleData {
+  name: string;
+  description?: string;
+  type: string;
+  startDate: string;
+  endDate: string;
+  feedbackTemplates?: FeedbackTemplate[];
+}
+
+export interface CreateFeedbackRequestData {
+  type: FeedbackType;
+  message?: string;
+  dueDate: string;
+  recipientId: string;
+  subjectId: string;
+  cycleId?: string;
+  isAnonymous: boolean;
+}
+
+export interface UpdateFeedbackRequestData {
+  message?: string;
+  dueDate?: string;
+  status?: RequestStatus;
+  isAnonymous?: boolean;
+}
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 
 // Feedback endpoints
@@ -78,27 +154,27 @@ export const getFeedbackList = async (params?: {
   cycleId?: string;
   page?: number;
   limit?: number;
-}) => {
+}): Promise<PaginatedResponse<Feedback>> => {
   const response = await api.get('/feedback', { params });
   return response.data;
 };
 
-export const getFeedbackById = async (id: string) => {
+export const getFeedbackById = async (id: string): Promise<Feedback> => {
   const response = await api.get(`/feedback/${id}`);
   return response.data;
 };
 
-export const createFeedback = async (data: any) => {
+export const createFeedback = async (data: CreateFeedbackData): Promise<Feedback> => {
   const response = await api.post('/feedback', data);
   return response.data;
 };
 
-export const updateFeedback = async (id: string, data: any) => {
+export const updateFeedback = async (id: string, data: UpdateFeedbackData): Promise<Feedback> => {
   const response = await api.patch(`/feedback/${id}`, data);
   return response.data;
 };
 
-export const deleteFeedback = async (id: string) => {
+export const deleteFeedback = async (id: string): Promise<void> => {
   await api.delete(`/feedback/${id}`);
 };
 
@@ -108,27 +184,27 @@ export const getFeedbackCycles = async (params?: {
   type?: string;
   page?: number;
   limit?: number;
-}) => {
+}): Promise<PaginatedResponse<FeedbackCycle>> => {
   const response = await api.get('/feedback/cycles', { params });
   return response.data;
 };
 
-export const getFeedbackCycleById = async (id: string) => {
+export const getFeedbackCycleById = async (id: string): Promise<FeedbackCycle> => {
   const response = await api.get(`/feedback/cycles/${id}`);
   return response.data;
 };
 
-export const createFeedbackCycle = async (data: any) => {
+export const createFeedbackCycle = async (data: CreateFeedbackCycleData): Promise<FeedbackCycle> => {
   const response = await api.post('/feedback/cycles', data);
   return response.data;
 };
 
-export const updateFeedbackCycle = async (id: string, data: any) => {
+export const updateFeedbackCycle = async (id: string, data: Partial<CreateFeedbackCycleData>): Promise<FeedbackCycle> => {
   const response = await api.patch(`/feedback/cycles/${id}`, data);
   return response.data;
 };
 
-export const deleteFeedbackCycle = async (id: string) => {
+export const deleteFeedbackCycle = async (id: string): Promise<void> => {
   await api.delete(`/feedback/cycles/${id}`);
 };
 
@@ -141,19 +217,6 @@ export interface FeedbackRequestParams {
   cycleId?: string;
   page?: number;
   limit?: number;
-}
-
-export interface PaginatedResponse<T> {
-  items: T[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
-export interface FeedbackRequest {
-  id: string;
-  // Add other properties as needed
 }
 
 export const getFeedbackRequests = async (
@@ -173,7 +236,6 @@ export const getFeedbackRequests = async (
     
     console.log('Feedback requests response:', response.data);
     
-    // Ensure we always return a valid response structure
     if (!response.data) {
       return { items: [], total: 0, page: 1, limit: 10, totalPages: 0 };
     }
@@ -187,22 +249,21 @@ export const getFeedbackRequests = async (
     };
   } catch (error) {
     console.error('Error fetching feedback requests:', error);
-    // Return empty data structure to prevent UI errors
     return { items: [], total: 0, page: 1, limit: 10, totalPages: 0 };
   }
 };
 
-export const getFeedbackRequestById = async (id: string) => {
+export const getFeedbackRequestById = async (id: string): Promise<FeedbackRequest> => {
   const response = await api.get(`/feedback/requests/${id}`);
   return response.data;
 };
 
-export const createFeedbackRequest = async (data: any) => {
+export const createFeedbackRequest = async (data: CreateFeedbackRequestData): Promise<FeedbackRequest> => {
   const response = await api.post('/feedback/requests', data);
   return response.data;
 };
 
-export const updateFeedbackRequest = async (id: string, data: any) => {
+export const updateFeedbackRequest = async (id: string, data: UpdateFeedbackRequestData): Promise<FeedbackRequest> => {
   const response = await api.patch(`/feedback/requests/${id}`, data);
   return response.data;
 };
@@ -210,12 +271,7 @@ export const updateFeedbackRequest = async (id: string, data: any) => {
 export interface RespondToFeedbackRequestResponse {
   success: boolean;
   message: string;
-  data?: any;
-}
-
-export interface RespondToFeedbackRequestPayload {
-  accept: boolean;
-  reason?: string;
+  data?: FeedbackRequest;
 }
 
 export const approveFeedbackRequest = async (
@@ -223,7 +279,7 @@ export const approveFeedbackRequest = async (
 ): Promise<RespondToFeedbackRequestResponse> => {
   try {
     const payload = {
-      status: 'approved',
+      status: 'approved' as const,
       isAnonymous: false
     };
     
@@ -245,40 +301,81 @@ export const approveFeedbackRequest = async (
     return {
       success: true,
       message: 'Feedback request approved successfully',
-      data: response.data
+      data: response.data.data
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error approving feedback request:', error);
     const errorMessage = 
-      error?.response?.data?.message || 
-      error?.message || 
+      error instanceof Error ? error.message :
+      typeof error === 'object' && error !== null && 'response' in error && 
+      typeof error.response === 'object' && error.response !== null && 
+      'data' in error.response && 
+      typeof error.response.data === 'object' && error.response.data !== null && 
+      'message' in error.response.data && 
+      typeof error.response.data.message === 'string' ? error.response.data.message :
       'Failed to approve feedback request. Please try again.';
     throw new Error(errorMessage);
   }
 };
 
-export const deleteFeedbackRequest = async (id: string) => {
+export const deleteFeedbackRequest = async (id: string): Promise<void> => {
   await api.delete(`/feedback/requests/${id}`);
 };
 
 // 360 Feedback endpoints
-export const generate360Feedback = async (userId: string, cycleId: string, recipientIds: string[]) => {
+export interface Generate360FeedbackResponse {
+  success: boolean;
+  message: string;
+  requests: FeedbackRequest[];
+}
+
+export const generate360Feedback = async (
+  userId: string, 
+  cycleId: string, 
+  recipientIds: string[]
+): Promise<Generate360FeedbackResponse> => {
   const response = await api.post(`/feedback/360/${userId}?cycleId=${cycleId}`, { recipientIds });
   return response.data;
 };
 
-export const get360FeedbackSummary = async (userId: string, cycleId?: string) => {
+export interface Feedback360Summary {
+  userId: string;
+  cycleId: string;
+  averageRatings: Record<string, number>;
+  totalFeedbacks: number;
+  completedFeedbacks: number;
+  pendingFeedbacks: number;
+}
+
+export const get360FeedbackSummary = async (
+  userId: string, 
+  cycleId?: string
+): Promise<Feedback360Summary> => {
   const response = await api.get(`/feedback/360/${userId}/summary${cycleId ? `?cycleId=${cycleId}` : ''}`);
   return response.data;
 };
 
 // Analytics endpoints
-export const getFeedbackStats = async (userId?: string) => {
+export interface FeedbackStats {
+  totalFeedbacks: number;
+  completedFeedbacks: number;
+  pendingFeedbacks: number;
+  averageRating: number;
+  ratingsByCategory: Record<string, number>;
+}
+
+export const getFeedbackStats = async (userId?: string): Promise<FeedbackStats> => {
   const response = await api.get('/feedback/analytics/stats', { params: { userId } });
   return response.data;
 };
 
-export const getAverageRatings = async (userId: string) => {
+export interface AverageRatings {
+  userId: string;
+  ratings: Record<string, number>;
+  overallAverage: number;
+}
+
+export const getAverageRatings = async (userId: string): Promise<AverageRatings> => {
   const response = await api.get(`/feedback/analytics/ratings/${userId}`);
   return response.data;
 };

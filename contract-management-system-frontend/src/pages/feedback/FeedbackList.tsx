@@ -1,51 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Button, 
   Card, 
-  Input, 
-  Select, 
   Table, 
   Tag, 
-  Badge, 
-  Space, 
-  Tooltip,
   Typography,
-  Dropdown,
-  Menu,
   message,
-  Modal
 } from 'antd';
-import { 
-  SearchOutlined, 
-  PlusOutlined, 
-  EyeOutlined, 
-  EditOutlined, 
-  DeleteOutlined,
-  MoreOutlined
-} from '@ant-design/icons';
 import { getFeedbackRequests } from '../../api/feedbackApi';
-import type { FeedbackRequest, RequestStatus } from '../../types/feedback.types';
-import { FeedbackType } from '../../types/feedback.types';
+import type { FeedbackRequest, User } from '../../api/feedbackApi';
 import dayjs from 'dayjs';
 import { useAuth } from '../../hooks/useAuth';
-
-const getTypeLabel = (type: FeedbackType): string => {
-  switch (type) {
-    case FeedbackType.PEER:
-      return 'Peer';
-    case FeedbackType.MANAGER:
-      return 'Manager';
-    case FeedbackType.SELF:
-      return 'Self';
-    case FeedbackType.UPWARD:
-      return 'Upward';
-    case FeedbackType.THREE_SIXTY:
-      return '360°';
-    default:
-      return type;
-  }
-};
 
 const FeedbackList: React.FC = () => {
   const navigate = useNavigate();
@@ -56,9 +22,8 @@ const FeedbackList: React.FC = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
-  const [searchTerm, setSearchTerm] = useState('');
 
-  const fetchFeedbackRequests = async () => {
+  const fetchFeedbackRequests = useCallback(async () => {
     try {
       setLoading(true);
       const response = await getFeedbackRequests({
@@ -72,16 +37,7 @@ const FeedbackList: React.FC = () => {
       
       // Filter for completed requests
       const userCompletedRequests = response.items.filter(
-        (request: FeedbackRequest) => {
-          const isCompleted = request.status === 'completed';
-          
-          console.log('--- Request ---');
-          console.log('Request ID:', request.id);
-          console.log('Status:', request.status, isCompleted ? '✅' : '❌');
-          console.log('Should Show:', isCompleted ? '✅' : '❌');
-          
-          return isCompleted;
-        }
+        (request: FeedbackRequest) => request.status === 'completed'
       );
       
       console.log('=== Filtered Results ===');
@@ -97,29 +53,27 @@ const FeedbackList: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, pageSize, user]);
 
   useEffect(() => {
     fetchFeedbackRequests();
-  }, [page, pageSize]);
-
-
+  }, [fetchFeedbackRequests]);
 
   const columns = [
     {
       title: 'Requested By',
       dataIndex: 'requester',
       key: 'requester',
-      render: (requester: any) => (
-        <span>{requester ? `${requester.firstName} ${requester.lastName}` : 'N/A'}</span>
+      render: (requester: User | null) => (
+        <span>{requester?.name || 'N/A'}</span>
       ),
     },
     {
       title: 'Subject',
       dataIndex: 'subject',
       key: 'subject',
-      render: (subject: any) => (
-        <span>{subject ? `${subject.firstName} ${subject.lastName}` : 'N/A'}</span>
+      render: (subject: User | null) => (
+        <span>{subject?.name || 'N/A'}</span>
       ),
     },
     {
@@ -151,7 +105,7 @@ const FeedbackList: React.FC = () => {
     {
       title: 'Actions',
       key: 'actions',
-      render: (_: any, record: FeedbackRequest) => (
+      render: (_: unknown, record: FeedbackRequest) => (
         <Button 
           type="primary" 
           onClick={() => navigate(`/feedback/new?requestId=${record.id}`)}
@@ -173,8 +127,6 @@ const FeedbackList: React.FC = () => {
           <Typography.Text type="secondary">Approved feedback requests for you to provide feedback</Typography.Text>
         </div>
       </div>
-
-
 
       <Card>
         <Table

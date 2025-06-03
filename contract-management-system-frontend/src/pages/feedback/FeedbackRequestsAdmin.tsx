@@ -14,7 +14,7 @@ import {
   Tooltip, 
   Modal,
   message,
-  type TableColumnType
+  type TableColumnType,
 } from 'antd';
 import { 
   CheckCircleOutlined, 
@@ -23,14 +23,15 @@ import {
   ReloadOutlined, 
   CloseCircleOutlined 
 } from '@ant-design/icons';
-import { showSuccessToast, showErrorToast } from '../../components/common/Toast';
+import { Toast } from '../../components/common/Toast';
 import type {
-  FeedbackRequest,
   FeedbackType,
-  User
+  RequestStatus
 } from '../../types/feedback.types';
-import type { RequestStatus } from '../../types/feedback.types';
+import type { FeedbackRequest, User } from '../../api/feedbackApi';
 import { getFeedbackRequests } from '../../api/feedbackApi';
+import { AxiosError } from 'axios';
+import type { Key } from 'react';
 
 const { Text } = Typography;
 
@@ -63,11 +64,11 @@ const FeedbackRequestsAdmin: FC = () => {
       if (searchText) {
         const searchLower = searchText.toLowerCase();
         filteredData = filteredData.filter(
-          (request: FeedbackRequest) =>
-            (request.requester?.name || '').toLowerCase().includes(searchLower) ||
-            (request.recipient?.name || '').toLowerCase().includes(searchLower) ||
-            (request.subject?.name || '').toLowerCase().includes(searchLower) ||
-            (request.message || '').toLowerCase().includes(searchLower)
+          (request) =>
+            String(request.requester?.name || '').toLowerCase().includes(searchLower) ||
+            String(request.recipient?.name || '').toLowerCase().includes(searchLower) ||
+            String(request.subject?.name || '').toLowerCase().includes(searchLower) ||
+            String(request.message || '').toLowerCase().includes(searchLower)
         );
       }
 
@@ -108,18 +109,20 @@ const FeedbackRequestsAdmin: FC = () => {
       });
       
       console.log('Approve API response:', response.data);
-      showSuccessToast('Feedback request approved successfully');
+      Toast.success('Feedback request approved successfully');
       
       // Force refresh the requests
       await fetchRequests(pagination.current, pagination.pageSize);
       console.log('Requests refreshed after approval');
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error approving feedback request:', error);
-      if (error.response) {
-        console.error('Error response data:', error.response.data);
-        console.error('Error response status:', error.response.status);
+      if (error instanceof AxiosError) {
+        console.error('Error response data:', error.response?.data);
+        console.error('Error response status:', error.response?.status);
+        Toast.error(error.response?.data?.message || 'Failed to approve feedback request');
+      } else {
+        Toast.error('Failed to approve feedback request');
       }
-      showErrorToast(error.response?.data?.message || 'Failed to approve feedback request');
     } finally {
       setLoading(false);
     }
@@ -141,18 +144,20 @@ const FeedbackRequestsAdmin: FC = () => {
       });
       
       console.log('Decline API response:', response.data);
-      showSuccessToast('Feedback request declined successfully');
+      Toast.success('Feedback request declined successfully');
       
       // Force refresh the requests
       await fetchRequests(pagination.current, pagination.pageSize);
       console.log('Requests refreshed after decline');
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error declining feedback request:', error);
-      if (error.response) {
-        console.error('Error response data:', error.response.data);
-        console.error('Error response status:', error.response.status);
+      if (error instanceof AxiosError) {
+        console.error('Error response data:', error.response?.data);
+        console.error('Error response status:', error.response?.status);
+        Toast.error(error.response?.data?.message || 'Failed to decline feedback request');
+      } else {
+        Toast.error('Failed to decline feedback request');
       }
-      showErrorToast(error.response?.data?.message || 'Failed to decline feedback request');
     } finally {
       setLoading(false);
       setIsDeclineModalVisible(false);
@@ -213,10 +218,7 @@ const FeedbackRequestsAdmin: FC = () => {
   const getUserDisplayName = (user: Partial<User> | string | undefined): string => {
     if (!user) return 'N/A';
     if (typeof user === 'string') return user;
-    if (user.firstName || user.lastName) {
-      return `${user.firstName || ''} ${user.lastName || ''}`.trim();
-    }
-    return user.email || 'Unknown User';
+    return user.name || user.email || 'Unknown User';
   };
 
   const columns: TableColumn[] = [
@@ -232,7 +234,7 @@ const FeedbackRequestsAdmin: FC = () => {
       title: 'Recipient',
       dataIndex: ['recipient', 'name'],
       key: 'recipient',
-      render: (_: any, record: FeedbackRequest) => (
+      render: (_: unknown, record: FeedbackRequest) => (
         <span className="text-gray-900">{getUserDisplayName(record.recipient) || `User (${record.recipientId})`}</span>
       ),
     },
@@ -240,7 +242,7 @@ const FeedbackRequestsAdmin: FC = () => {
       title: 'Subject',
       dataIndex: ['subject', 'name'],
       key: 'subject',
-      render: (_: any, record: FeedbackRequest) => (
+      render: (_: unknown, record: FeedbackRequest) => (
         <span className="text-gray-900">{getUserDisplayName(record.subject) || `User (${record.subjectId})`}</span>
       ),
     },
@@ -248,19 +250,25 @@ const FeedbackRequestsAdmin: FC = () => {
       title: 'Type',
       dataIndex: 'type',
       key: 'type',
-      render: (type: FeedbackType) => (
-        <Tag color="blue" className="font-medium rounded-md">
-          {type.toLowerCase().replace(/_/g, ' ')}
-        </Tag>
-      ),
+      render: (type: unknown) => {
+        const typeStr = typeof type === 'string' ? type : (type && typeof type === 'object' && 'toString' in type ? String(type) : '');
+        return (
+          <Tag color="blue" className="font-medium rounded-md">
+            {typeStr ? typeStr.toLowerCase().replace(/_/g, ' ') : ''}
+          </Tag>
+        );
+      },
       filters: [
-        { text: 'Peer', value: 'PEER' },
-        { text: 'Manager', value: 'MANAGER' },
-        { text: 'Self', value: 'SELF' },
-        { text: 'Upward', value: 'UPWARD' },
-        { text: '360°', value: 'THREE_SIXTY' },
+        { text: 'Peer', value: 'PEER' as FeedbackType },
+        { text: 'Manager', value: 'MANAGER' as FeedbackType },
+        { text: 'Self', value: 'SELF' as FeedbackType },
+        { text: 'Upward', value: 'UPWARD' as FeedbackType },
+        { text: '360°', value: 'THREE_SIXTY' as FeedbackType },
       ],
-      onFilter: (value: any, record: FeedbackRequest) => record.type === value,
+      onFilter: (value: boolean | Key, record: FeedbackRequest) => {
+        if (typeof value === 'boolean') return false;
+        return record.type === value as FeedbackType;
+      },
     },
     {
       title: 'Status',
@@ -290,16 +298,20 @@ const FeedbackRequestsAdmin: FC = () => {
           </Tag>
         );
       },
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }: any) => (
+      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }: {
+        setSelectedKeys: (keys: Key[]) => void;
+        selectedKeys: Key[];
+        confirm: () => void;
+      }) => (
         <div className="p-4 bg-white rounded-lg shadow-sm">
           <Select
             className="w-48 mb-2"
             placeholder="Select status"
-            value={selectedKeys[0]}
-            onChange={value => {
+            value={selectedKeys[0] as RequestStatus | undefined}
+            onChange={(value: RequestStatus | undefined) => {
               setSelectedKeys(value ? [value] : []);
               confirm();
-              handleStatusFilterChange(value || undefined);
+              handleStatusFilterChange(value || null);
             }}
             allowClear
             loading={filterLoading}
@@ -343,7 +355,7 @@ const FeedbackRequestsAdmin: FC = () => {
     {
       title: 'Actions',
       key: 'actions',
-      render: (_: any, record: FeedbackRequest) => (
+      render: (_: unknown, record: FeedbackRequest) => (
         <Space size="middle">
           {record.status === 'pending' && (
             <>

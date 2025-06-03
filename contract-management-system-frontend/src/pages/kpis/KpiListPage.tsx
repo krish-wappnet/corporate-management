@@ -5,22 +5,50 @@ import {
   fetchKpis, 
   setFilters, 
   fetchCategories,
-  deleteKpi 
+  deleteKpi
 } from '../../store/slices/kpiSlice';
-import type { Kpi } from '../../types/kpi';
-import type { PaginationParams } from '../../types/kpi';
 import { KpiStatus } from '../../types/kpi';
+import type { Kpi, KpiFilterParams as ApiKpiFilterParams } from '../../types/kpi';
 import { Button, Table, Space, Tag, Select, Input, DatePicker, Card, Row, Col, Popconfirm, message } from 'antd';
 import { PlusOutlined, SearchOutlined, FilterOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import type { TablePaginationConfig } from 'antd/es/table';
+import type { FilterValue, SorterResult } from 'antd/es/table/interface';
+import { isAxiosError } from 'axios';
+
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
+
+interface ApiErrorResponse {
+  message: string | string[];
+  statusCode?: number;
+}
+
+interface TableParams {
+  pagination?: TablePaginationConfig;
+  sortField?: string;
+  sortOrder?: 'asc' | 'desc';
+  filters?: Record<string, FilterValue | null>;
+}
+
+interface KpiPaginationParams {
+  page: number;
+  limit: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
 
 const KpiListPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { kpis, loading, pagination, filters, categories } = useAppSelector((state) => state.kpis);
+  const [tableParams, setTableParams] = useState<TableParams>({
+    pagination: {
+      current: 1,
+      pageSize: 10,
+    },
+  });
 
   // Debug log the data
   useEffect(() => {
@@ -32,23 +60,21 @@ const KpiListPage: React.FC = () => {
   }, [kpis, categories, loading, pagination, filters]);
   
   const [searchText, setSearchText] = useState('');
-  const [dateRange, setDateRange] = useState<any>(null);
+  const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null);
   
   const loadKpis = useCallback(async () => {
     try {
-      console.log('Fetching KPIs with params:', { 
-        page: pagination.page, 
-        limit: pagination.limit,
-        filters 
-      });
+      const params = {
+        pagination: {
+          page: tableParams.pagination?.current || 1,
+          limit: tableParams.pagination?.pageSize || 10,
+          sortBy: tableParams.sortField,
+          sortOrder: tableParams.sortOrder as 'asc' | 'desc' | undefined
+        } as KpiPaginationParams,
+        filters: tableParams.filters
+      };
       
-      const resultAction = await dispatch(fetchKpis({ 
-        pagination: { 
-          page: pagination.page, 
-          limit: pagination.limit 
-        },
-        filters
-      }));
+      const resultAction = await dispatch(fetchKpis(params));
       
       if (fetchKpis.fulfilled.match(resultAction)) {
         console.log('Fetched KPIs:', resultAction.payload);
@@ -58,41 +84,68 @@ const KpiListPage: React.FC = () => {
     } catch (error) {
       console.error('Error in loadKpis:', error);
     }
-  }, [dispatch, pagination.page, pagination.limit, filters]);
+  }, [dispatch, tableParams]);
   
   useEffect(() => {
     loadKpis();
     dispatch(fetchCategories());
-  }, [loadKpis]);
+  }, [loadKpis, dispatch]);
 
-  const handleTableChange = (tablePagination: any, _: any, sorter: any) => {
-    console.log('Table changed:', { tablePagination, sorter });
+  const handleTableChange = (
+    pagination: TablePaginationConfig,
+    filters: Record<string, FilterValue | null>,
+    sorter: SorterResult<Kpi> | SorterResult<Kpi>[]
+  ) => {
+    const sortOrder = Array.isArray(sorter) ? sorter[0]?.order : sorter.order;
+    const sortField = Array.isArray(sorter) ? sorter[0]?.field?.toString() : sorter.field?.toString();
     
-    const paginationParams: PaginationParams = {
-      page: tablePagination.current,
-      limit: tablePagination.pageSize,
+    setTableParams({
+      pagination,
+      filters,
+      sortField,
+      sortOrder: sortOrder === 'ascend' ? 'asc' : sortOrder === 'descend' ? 'desc' : undefined
+    });
+
+    const apiFilters: ApiKpiFilterParams = {
+      categoryId: filters.categoryId?.[0] as string,
+      status: filters.status?.[0] as KpiStatus,
+      startDate: filters.dateRange?.[0] as string,
+      endDate: filters.dateRange?.[1] as string
     };
-    
-    if (sorter.field) {
-      paginationParams.sortBy = sorter.field;
-      paginationParams.sortOrder = sorter.order === 'ascend' ? 'asc' : 'desc';
-    }
-    
-    dispatch(fetchKpis({
-      pagination: paginationParams,
-      filters: { ...filters },
-    }));
+
+    const apiParams = {
+      pagination: {
+        page: pagination.current || 1,
+        limit: pagination.pageSize || 10,
+        sortBy: sortField,
+        sortOrder: sortOrder === 'ascend' ? 'asc' : sortOrder === 'descend' ? 'desc' : undefined
+      } as KpiPaginationParams,
+      filters: apiFilters
+    };
+
+    dispatch(fetchKpis(apiParams));
   };
 
   const handleSearch = () => {
-    dispatch(
-      setFilters({
-        ...filters,
-        search: searchText,
-        startDate: dateRange?.[0]?.format('YYYY-MM-DD'),
-        endDate: dateRange?.[1]?.format('YYYY-MM-DD'),
-      })
-    );
+    if (dateRange && dateRange[0] && dateRange[1]) {
+      dispatch(
+        setFilters({
+          ...filters,
+          search: searchText,
+          startDate: dateRange[0].format('YYYY-MM-DD'),
+          endDate: dateRange[1].format('YYYY-MM-DD'),
+        })
+      );
+    } else {
+      dispatch(
+        setFilters({
+          ...filters,
+          search: searchText,
+          startDate: undefined,
+          endDate: undefined,
+        })
+      );
+    }
   };
 
   const handleStatusChange = (status: KpiStatus | undefined) => {
@@ -116,9 +169,34 @@ const KpiListPage: React.FC = () => {
   const handleDelete = async (id: string) => {
     try {
       await dispatch(deleteKpi(id)).unwrap();
-      message.success('KPI deleted successfully', 3);
+      message.success('KPI deleted successfully');
+      
+      const apiFilters: ApiKpiFilterParams = {
+        categoryId: tableParams.filters?.categoryId?.[0] as string,
+        status: tableParams.filters?.status?.[0] as KpiStatus,
+        startDate: tableParams.filters?.dateRange?.[0] as string,
+        endDate: tableParams.filters?.dateRange?.[1] as string
+      };
+
+      const apiParams = {
+        pagination: {
+          page: tableParams.pagination?.current || 1,
+          limit: tableParams.pagination?.pageSize || 10,
+          sortBy: tableParams.sortField,
+          sortOrder: tableParams.sortOrder
+        },
+        filters: apiFilters
+      };
+
+      dispatch(fetchKpis(apiParams));
     } catch (error) {
-      message.error('Failed to delete KPI', 3);
+      if (isAxiosError<ApiErrorResponse>(error)) {
+        const errorMessage = error.response?.data?.message || 'Failed to delete KPI';
+        message.error(errorMessage);
+      } else {
+        const err = error as Error;
+        message.error(err.message || 'Failed to delete KPI');
+      }
     }
   };
 
@@ -198,7 +276,7 @@ const KpiListPage: React.FC = () => {
     {
       title: 'Actions',
       key: 'actions',
-      render: (_: any, record: Kpi) => (
+      render: (_: unknown, record: Kpi) => (
         <Space size="middle">
           <Button
             icon={<EditOutlined />}
@@ -307,8 +385,8 @@ const KpiListPage: React.FC = () => {
             rowKey="id"
             loading={loading}
             pagination={{
-              current: pagination.page,
-              pageSize: pagination.limit,
+              current: tableParams.pagination?.current,
+              pageSize: tableParams.pagination?.pageSize,
               total: pagination.total,
               showSizeChanger: true,
               showTotal: (total) => `Total ${total} items`,

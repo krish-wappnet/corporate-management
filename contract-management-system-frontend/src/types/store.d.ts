@@ -27,4 +27,7 @@ export interface TopPerformingOkr {
 }
 
 // Define the AppDispatch type for use with useDispatch
-export type AppDispatch = (action: { type: string; payload?: any }) => any;
+export type AppDispatch = (action: { 
+  type: string; 
+  payload?: unknown 
+}) => Promise<unknown> | void;

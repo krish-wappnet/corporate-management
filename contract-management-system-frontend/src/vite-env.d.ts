@@ -30,8 +30,8 @@ declare module '*.module.less' {
 }
 
 declare module '*.svg' {
-  import React = require('react');
-  export const ReactComponent: React.FunctionComponent<React.SVGProps<SVGSVGElement>>;
+  import type { FunctionComponent, SVGProps } from 'react';
+  export const ReactComponent: FunctionComponent<SVGProps<SVGSVGElement>>;
   const src: string;
   export default src;
 }

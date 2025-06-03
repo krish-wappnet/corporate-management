@@ -6,23 +6,24 @@ import { useNavigate } from 'react-router-dom';
 
 const { Title } = Typography;
 
+interface CategoryFormValues {
+  name: string;
+  description?: string;
+}
+
 const AddCategoryPage: React.FC = () => {
   const [form] = Form.useForm();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
-  const onFinish = async (values: any) => {
+  const onFinish = async (values: CategoryFormValues) => {
     try {
       setLoading(true);
-      await dispatch(createCategory({
-        name: values.name,
-        description: values.description || ''
-      })).unwrap();
-      
+      await dispatch(createCategory(values)).unwrap();
       message.success('Category created successfully');
       navigate('/categories');
-    } catch (error) {
+    } catch {
       message.error('Failed to create category');
     } finally {
       setLoading(false);

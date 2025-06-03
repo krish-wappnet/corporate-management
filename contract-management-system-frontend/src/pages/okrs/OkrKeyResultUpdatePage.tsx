@@ -6,7 +6,7 @@ import {
   clearCurrentKeyResult,
   selectKeyResultById
 } from '../../store/slices/okrSlice';
-import type { CreateKeyResultUpdateDto, KeyResult } from '../../types/okr';
+import type { CreateKeyResultUpdateDto } from '../../types/okr';
 import { Form, Typography, message, Button, Card, Input } from 'antd';
 import { SaveOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 
@@ -40,6 +40,32 @@ const OkrKeyResultUpdatePage: React.FC = () => {
   // Extract key result properties with defaults
   const { title = 'Key Result', currentValue = 0 } = currentKeyResult || {};
 
+  // Set initial form values when currentKeyResult changes
+  useEffect(() => {
+    if (currentKeyResult) {
+      form.setFieldsValue({ value: currentKeyResult.currentValue });
+    }
+  }, [currentKeyResult, form]);
+
+  useEffect(() => {
+    // Cleanup on unmount
+    return () => {
+      dispatch(clearCurrentKeyResult());
+    };
+  }, [dispatch]);
+
+  if (loading) {
+    return <div>Loading key result data...</div>;
+  }
+
+  if (error) {
+    return <div>Error loading key result: {error}</div>;
+  }
+
+  if (!currentKeyResult) {
+    return <div>Key result not found</div>;
+  }
+
   // Handle form submission
   const handleFormSubmit = async (formValues: KeyResultUpdateFormValues) => {
     if (!id) {
@@ -65,32 +91,6 @@ const OkrKeyResultUpdatePage: React.FC = () => {
       setIsSubmitting(false);
     }
   };
-
-  useEffect(() => {
-    // Cleanup on unmount
-    return () => {
-      dispatch(clearCurrentKeyResult());
-    };
-  }, [dispatch]);
-
-  if (loading) {
-    return <div>Loading key result data...</div>;
-  }
-
-  if (error) {
-    return <div>Error loading key result: {error}</div>;
-  }
-
-  if (!currentKeyResult) {
-    return <div>Key result not found</div>;
-  }
-
-  // Set initial form values when currentKeyResult changes
-  useEffect(() => {
-    if (currentKeyResult) {
-      form.setFieldsValue({ value: currentKeyResult.currentValue });
-    }
-  }, [currentKeyResult, form]);
 
   return (
     <div className="okr-key-result-update-page" style={{ maxWidth: '800px', margin: '0 auto', padding: '24px' }}>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSnackbar } from 'notistack';
 import { format } from 'date-fns';
-import { Box, Typography, Button, Grid as MuiGrid, Chip, Card, CardContent, List, ListItem, ListItemText, ListItemAvatar, Avatar, Rating, Divider } from '@mui/material';
+import { Box, Typography, Button, Chip, Card, CardContent, List, ListItem, ListItemText, ListItemAvatar, Avatar, Rating, Divider } from '@mui/material';
 import { Edit as EditIcon, Delete as DeleteIcon, ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 
 import { FeedbackType } from '@/types/feedback.types';
@@ -13,9 +13,6 @@ export const FeedbackStatus = {
   ACKNOWLEDGED: 'ACKNOWLEDGED',
   ARCHIVED: 'ARCHIVED',
 } as const;
-
-// Use MuiGrid directly with proper TypeScript types
-const Grid = MuiGrid as React.ComponentType<any>;
 
 import { getFeedbackById, deleteFeedback } from '../../api/feedbackApi';
 import type { Feedback } from '../../api/feedbackApi';
@@ -49,7 +46,7 @@ const FeedbackDetail: React.FC = () => {
       try {
         const data = await getFeedbackById(id);
         setFeedback(data);
-      } catch (error) {
+      } catch {
         enqueueSnackbar('Failed to load feedback', { variant: 'error' });
       } finally {
         setLoading(false);
@@ -88,7 +85,7 @@ const FeedbackDetail: React.FC = () => {
   };
 
   const getStatusColor = (status: string) => {
-    if (!Object.values(FeedbackStatus).includes(status as any)) return 'default';
+    if (!Object.values(FeedbackStatus).includes(status as keyof typeof FeedbackStatus)) return 'default';
     switch (status) {
       case FeedbackStatus.SUBMITTED:
         return 'success';
@@ -107,9 +104,9 @@ const FeedbackDetail: React.FC = () => {
         setLoading(true);
         const data = await getFeedbackById(id!);
         setFeedback(data);
-      } catch (error) {
+      } catch (err) {
         enqueueSnackbar('Error loading feedback', { variant: 'error' });
-        console.error('Error fetching feedback:', error);
+        console.error('Error fetching feedback:', err);
         navigate('/feedback');
       } finally {
         setLoading(false);
@@ -137,9 +134,8 @@ const FeedbackDetail: React.FC = () => {
   }
 
   // Check if current user is the feedback author or admin
-  // Check if current user is the feedback author or admin
   const isAuthor = Boolean(user && feedback && user.id === feedback.fromUserId);
-  const isAdmin = Boolean(user && (user as any)?.role === 'ADMIN');
+  const isAdmin = Boolean(user && user.role === 'ADMIN');
   const canEdit = isAuthor || isAdmin;
 
 
@@ -159,7 +155,7 @@ const FeedbackDetail: React.FC = () => {
           </Button>
         </Box>
         <Typography variant="subtitle1" color="text.secondary">
-          {getFeedbackTypeLabel(feedback.type as FeedbackType)}
+          {getFeedbackTypeLabel(feedback.type as string)}
         </Typography>
       </Box>
       {canEdit && (
@@ -182,8 +178,8 @@ const FeedbackDetail: React.FC = () => {
           </Button>
         </>
       )}
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={8}>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+        <Box sx={{ flexGrow: 1, flexBasis: { xs: '100%', md: '66.666%' } }}>
           <Card sx={{ mb: 3 }}>
             <CardContent>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
@@ -192,7 +188,7 @@ const FeedbackDetail: React.FC = () => {
                 </Typography>
                 <Chip
                   label={feedback.status.toLowerCase()}
-                  color={getStatusColor(feedback.status as string) as any}
+                  color={getStatusColor(feedback.status) as 'success' | 'warning' | 'default' | 'info'}
                   size="small"
                   sx={{ ml: 1, textTransform: 'capitalize' }}
                 />
@@ -226,9 +222,9 @@ const FeedbackDetail: React.FC = () => {
               )}
             </CardContent>
           </Card>
-        </Grid>
+        </Box>
         
-        <Grid item xs={12} md={4}>
+        <Box sx={{ flexGrow: 1, flexBasis: { xs: '100%', md: '33.333%' } }}>
           <Card sx={{ mb: 3 }}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -272,7 +268,7 @@ const FeedbackDetail: React.FC = () => {
                 <ListItem disableGutters>
                   <ListItemAvatar>
                     <Avatar>
-                      {feedback.fromUser?.firstName?.charAt(0) || 'U'}
+                      {feedback.fromUser?.name?.charAt(0) || 'U'}
                     </Avatar>
                   </ListItemAvatar>
                   <ListItemText 
@@ -280,7 +276,7 @@ const FeedbackDetail: React.FC = () => {
                     secondary={
                       feedback.isAnonymous 
                         ? 'Anonymous' 
-                        : `${feedback.fromUser?.firstName} ${feedback.fromUser?.lastName}`
+                        : feedback.fromUser?.name || 'Unknown User'
                     } 
                   />
                 </ListItem>
@@ -288,12 +284,12 @@ const FeedbackDetail: React.FC = () => {
                 <ListItem disableGutters>
                   <ListItemAvatar>
                     <Avatar>
-                      {feedback.toUser?.firstName?.charAt(0) || 'U'}
+                      {feedback.toUser?.name?.charAt(0) || 'U'}
                     </Avatar>
                   </ListItemAvatar>
                   <ListItemText 
                     primary="To" 
-                    secondary={`${feedback.toUser?.firstName} ${feedback.toUser?.lastName}`} 
+                    secondary={feedback.toUser?.name || 'Unknown User'} 
                   />
                 </ListItem>
                 
@@ -315,8 +311,8 @@ const FeedbackDetail: React.FC = () => {
               </List>
             </CardContent>
           </Card>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
     </Box>
   );
 };

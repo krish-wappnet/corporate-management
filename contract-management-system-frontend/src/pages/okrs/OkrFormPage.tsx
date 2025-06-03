@@ -18,11 +18,10 @@ import {
   Row,
   Col,
   DatePicker,
-  Space,
   Select,
   InputNumber,
 } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
+import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import type { Dayjs } from "dayjs";
 import api from "../../services/api";
@@ -30,8 +29,9 @@ import { v4 as uuidv4 } from "uuid";
 import type { AxiosError } from "axios";
 import { jwtDecode } from "jwt-decode"; // Add this import
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 const { Option } = Select;
+const { TextArea } = Input;
 
 type Frequency = "quarterly" | "annual" | "custom";
 
@@ -147,6 +147,11 @@ const initialFormValues: FormValues = {
   ],
 };
 
+interface ApiResponse<T> {
+  items?: T[];
+  data?: T;
+}
+
 const OkrFormPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
@@ -157,23 +162,24 @@ const OkrFormPage: React.FC = () => {
   const [parentOkrs, setParentOkrs] = useState<OKR[]>([]);
   const [departmentsLoading, setDepartmentsLoading] = useState(false);
   const [form] = Form.useForm<FormValues>();
+  const [formError, setFormError] = useState<string | null>(null);
 
   // Fetch departments
   const fetchDepartments = useCallback(async () => {
     try {
       setDepartmentsLoading(true);
-      const response = await api.get<Department[]>("/departments", {
+      const response = await api.get<ApiResponse<Department>>("/departments", {
         params: { include: "manager" },
       });
       const departmentsData = Array.isArray(response.data)
         ? response.data
-        : (response.data as { items?: any[] }).items || [];
+        : response.data?.items || [];
       setDepartments(departmentsData);
       return true;
     } catch (error) {
-      message.error(
-        `Failed to load departments: ${(error as AxiosError).message}`
-      );
+      const err = error as Error;
+      console.error('Failed to load departments:', err);
+      message.error(err.message || 'Failed to load departments');
       return false;
     } finally {
       setDepartmentsLoading(false);
@@ -183,19 +189,19 @@ const OkrFormPage: React.FC = () => {
   // Fetch parent OKRs
   const fetchParentOkrs = useCallback(async () => {
     try {
-      const response = await api.get<OKR[]>("/okrs");
+      const response = await api.get<ApiResponse<OKR>>("/okrs");
       const okrsData = Array.isArray(response.data)
         ? response.data
-        : (response.data as { items?: any[] }).items || [];
+        : response.data?.items || [];
       const filteredOkrs = id
         ? okrsData.filter((okr) => okr.id !== id)
         : okrsData;
       setParentOkrs(filteredOkrs);
       return true;
     } catch (error) {
-      message.error(
-        `Failed to load parent OKRs: ${(error as AxiosError).message}`
-      );
+      const err = error as Error;
+      console.error('Failed to load parent OKRs:', err);
+      message.error(err.message || 'Failed to load parent OKRs');
       return false;
     }
   }, [id]);
@@ -232,14 +238,11 @@ const OkrFormPage: React.FC = () => {
         });
       }
     } catch (error) {
-      if (isAxiosError(error) && error.response?.status === 404) {
-        message.error("The OKR you're trying to edit no longer exists");
-        navigate("/okrs"); // Redirect to OKR list
-      } else {
-        message.error(`Failed to load OKR: ${(error as AxiosError).message}`);
-      }
+      const err = error as Error;
+      console.error('Failed to load OKR:', err);
+      setFormError(err.message || 'Failed to load OKR data');
     }
-  }, [dispatch, id, form, navigate]);
+  }, [dispatch, id, form]);
 
   // Type guard for Axios error
   const isAxiosError = (
@@ -254,6 +257,7 @@ const OkrFormPage: React.FC = () => {
       console.log('Form submitted with values:', values);
       try {
         setSubmitting(true);
+        setFormError(null);
         console.log('Starting form submission...');
         const validFrequencies = ["quarterly", "annual", "custom"] as const;
         const frequency = values.frequency as Frequency;
@@ -343,14 +347,14 @@ const OkrFormPage: React.FC = () => {
           navigate("/okrs");
         }
       } catch (error) {
-        console.error('Form submission error:', error);
-        if (isAxiosError(error) && error.response?.data) {
-          const errorMessage = Array.isArray(error.response.data.message)
+        if (isAxiosError(error)) {
+          const errorMessage = Array.isArray(error.response?.data?.message)
             ? error.response.data.message.join("; ")
-            : error.response.data.message;
-          message.error(`Failed to save OKR: ${errorMessage}`);
+            : error.response?.data?.message || 'Failed to save OKR';
+          setFormError(errorMessage);
         } else {
-          message.error(`Failed to save OKR: ${(error as Error).message}`);
+          const err = error as Error;
+          setFormError(err.message || 'Failed to save OKR');
         }
       } finally {
         setSubmitting(false);
@@ -371,9 +375,13 @@ const OkrFormPage: React.FC = () => {
         }
         await Promise.all([fetchDepartments(), fetchParentOkrs()]);
       } catch (error) {
-        message.error(
-          `Initialization failed: ${(error as AxiosError).message}`
-        );
+        if (isAxiosError(error)) {
+          const errorMessage = error.response?.data?.message || 'Initialization failed';
+          message.error(errorMessage);
+        } else {
+          const err = error as Error;
+          message.error(err.message || 'Initialization failed');
+        }
       } finally {
         setLoading(false);
       }
@@ -404,6 +412,11 @@ const OkrFormPage: React.FC = () => {
               {id ? "Edit OKR" : "Create New OKR"}
             </Title>
           </div>
+          {formError && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600">
+              {formError}
+            </div>
+          )}
           <Form
             form={form}
             layout="vertical"
@@ -594,9 +607,13 @@ const OkrFormPage: React.FC = () => {
               </Select>
             </Form.Item>
 
-            <Title level={4} className="text-blue-900 mt-8">
+            <Title level={4} className="text-blue-900 mt-8 mb-4">
               Key Results
+              <Text type="secondary" className="text-sm ml-2">
+                (Measurable outcomes that indicate progress towards the objective)
+              </Text>
             </Title>
+
             <Form.List
               name="keyResults"
               rules={[
@@ -611,75 +628,211 @@ const OkrFormPage: React.FC = () => {
               ]}
             >
               {(fields, { add, remove }) => (
-                <div className="space-y-4">
-                  {fields.map((field) => (
-                    <div key={field.key} className="bg-gray-50 p-4 rounded-lg">
-                      <Space className="flex flex-wrap items-start gap-4" align="start">
+                <div className="space-y-6">
+                  {fields.map((field, index) => (
+                    <Card 
+                      key={field.key} 
+                      className="bg-gray-50 border border-gray-200"
+                      title={
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">Key Result {index + 1}</span>
+                          {fields.length > 1 && (
+                            <Button
+                              type="text"
+                              danger
+                              icon={<DeleteOutlined />}
+                              onClick={() => remove(field.name)}
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              Remove
+                            </Button>
+                          )}
+                        </div>
+                      }
+                    >
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Form.Item
                           name={[field.name, "title"]}
-                          rules={[{ required: true, message: "Missing title" }]}
-                          className="flex-1 min-w-[200px]"
+                          label={
+                            <span className="font-medium">
+                              Title
+                              <Text type="secondary" className="ml-1">
+                                (What needs to be achieved?)
+                              </Text>
+                            </span>
+                          }
+                          rules={[
+                            { required: true, message: "Please enter a title" },
+                            { max: 100, message: "Title cannot exceed 100 characters" }
+                          ]}
                         >
-                          <Input placeholder="Key Result Title" />
+                          <Input 
+                            placeholder="e.g., Increase customer satisfaction score" 
+                            className="w-full"
+                          />
                         </Form.Item>
+
+                        <Form.Item
+                          name={[field.name, "type"]}
+                          label={
+                            <span className="font-medium">
+                              Measurement Type
+                              <Text type="secondary" className="ml-1">
+                                (How will it be measured?)
+                              </Text>
+                            </span>
+                          }
+                          rules={[{ required: true, message: "Please select a measurement type" }]}
+                        >
+                          <Select placeholder="Select measurement type">
+                            <Option value="number">Number</Option>
+                            <Option value="percentage">Percentage</Option>
+                            <Option value="currency">Currency</Option>
+                          </Select>
+                        </Form.Item>
+
                         <Form.Item
                           name={[field.name, "description"]}
-                          rules={[{ required: true, message: "Missing description" }]}
-                          className="flex-1 min-w-[200px]"
+                          label={
+                            <span className="font-medium">
+                              Description
+                              <Text type="secondary" className="ml-1">
+                                (How will this be achieved?)
+                              </Text>
+                            </span>
+                          }
+                          rules={[
+                            { required: true, message: "Please enter a description" },
+                            { max: 500, message: "Description cannot exceed 500 characters" }
+                          ]}
+                          className="md:col-span-2"
                         >
-                          <Input placeholder="Key Result Description" />
+                          <TextArea 
+                            rows={3} 
+                            placeholder="Describe the key result and how it will be achieved"
+                          />
                         </Form.Item>
-                        <Form.Item
-                          name={[field.name, "startValue"]}
-                          rules={[{ required: true, message: "Missing start value" }]}
-                          className="w-[120px]"
-                        >
-                          <InputNumber placeholder="Start Value" />
-                        </Form.Item>
-                        <Form.Item
-                          name={[field.name, "targetValue"]}
-                          rules={[{ required: true, message: "Missing target value" }]}
-                          className="w-[120px]"
-                        >
-                          <InputNumber placeholder="Target Value" />
-                        </Form.Item>
-                        <Form.Item
-                          name={[field.name, "currentValue"]}
-                          rules={[{ required: true, message: "Missing current value" }]}
-                          className="w-[120px]"
-                        >
-                          <InputNumber placeholder="Current Value" />
-                        </Form.Item>
+
+                        <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <Form.Item
+                            name={[field.name, "startValue"]}
+                            label={
+                              <span className="font-medium">
+                                Starting Value
+                                <Text type="secondary" className="ml-1">
+                                  (Current baseline)
+                                </Text>
+                              </span>
+                            }
+                            rules={[
+                              { required: true, message: "Please enter the starting value" },
+                              { type: 'number', min: 0, message: "Value must be positive" }
+                            ]}
+                          >
+                            <InputNumber 
+                              placeholder="e.g., 0" 
+                              className="w-full"
+                              min={0}
+                            />
+                          </Form.Item>
+
+                          <Form.Item
+                            name={[field.name, "targetValue"]}
+                            label={
+                              <span className="font-medium">
+                                Target Value
+                                <Text type="secondary" className="ml-1">
+                                  (Goal to achieve)
+                                </Text>
+                              </span>
+                            }
+                            rules={[
+                              { required: true, message: "Please enter the target value" },
+                              { type: 'number', min: 0, message: "Value must be positive" },
+                              {
+                                validator: (_, value) => {
+                                  const startValue = form.getFieldValue(['keyResults', field.name, 'startValue']);
+                                  if (value <= startValue) {
+                                    return Promise.reject('Target must be greater than starting value');
+                                  }
+                                  return Promise.resolve();
+                                }
+                              }
+                            ]}
+                          >
+                            <InputNumber 
+                              placeholder="e.g., 100" 
+                              className="w-full"
+                              min={0}
+                            />
+                          </Form.Item>
+
+                          <Form.Item
+                            name={[field.name, "currentValue"]}
+                            label={
+                              <span className="font-medium">
+                                Current Value
+                                <Text type="secondary" className="ml-1">
+                                  (Latest progress)
+                                </Text>
+                              </span>
+                            }
+                            rules={[
+                              { required: true, message: "Please enter the current value" },
+                              { type: 'number', min: 0, message: "Value must be positive" },
+                              {
+                                validator: (_, value) => {
+                                  const startValue = form.getFieldValue(['keyResults', field.name, 'startValue']);
+                                  const targetValue = form.getFieldValue(['keyResults', field.name, 'targetValue']);
+                                  if (value < startValue || value > targetValue) {
+                                    return Promise.reject('Current value must be between start and target values');
+                                  }
+                                  return Promise.resolve();
+                                }
+                              }
+                            ]}
+                          >
+                            <InputNumber 
+                              placeholder="e.g., 50" 
+                              className="w-full"
+                              min={0}
+                            />
+                          </Form.Item>
+                        </div>
+
                         <Form.Item
                           name={[field.name, "weight"]}
-                          rules={[{ required: true, message: "Missing weight" }]}
-                          className="w-[120px]"
+                          label={
+                            <span className="font-medium">
+                              Priority Weight
+                              <Text type="secondary" className="ml-1">
+                                (1-10, higher means more important)
+                              </Text>
+                            </span>
+                          }
+                          rules={[
+                            { required: true, message: "Please enter the priority weight" },
+                            { type: 'number', min: 1, max: 10, message: "Weight must be between 1 and 10" }
+                          ]}
+                          className="md:col-span-2"
                         >
-                          <InputNumber placeholder="Weight" />
+                          <InputNumber 
+                            min={1} 
+                            max={10} 
+                            className="w-full"
+                            placeholder="Enter priority weight (1-10)"
+                          />
                         </Form.Item>
-                        <Form.Item
-                          name={[field.name, "id"]}
-                          noStyle
-                          initialValue={uuidv4()}
-                        >
-                          <Input type="hidden" />
-                        </Form.Item>
-                        <Button
-                          type="link"
-                          onClick={() => remove(field.name)}
-                          className="text-red-600 hover:text-red-800 transition-colors"
-                        >
-                          Remove
-                        </Button>
-                      </Space>
-                    </div>
+                      </div>
+                    </Card>
                   ))}
+
                   <Form.Item>
                     <Button
                       type="dashed"
                       onClick={() =>
                         add({
-                          id: uuidv4(),
+                          key: uuidv4(),
                           title: "",
                           description: "",
                           type: "number",
@@ -692,7 +845,7 @@ const OkrFormPage: React.FC = () => {
                       className="w-full border-gray-200 rounded-lg shadow-sm hover:bg-gray-50 transition-all h-12 text-base font-semibold"
                       icon={<PlusOutlined />}
                     >
-                      Add Key Result
+                      Add Another Key Result
                     </Button>
                   </Form.Item>
                 </div>

@@ -1,4 +1,16 @@
-import axios from "axios";
+import axios from 'axios';
+import type { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
+
+interface ApiErrorResponse {
+  message: string;
+  status?: number;
+}
+
+interface ApiResponse<T> {
+  data: T;
+  message?: string;
+  status: number;
+}
 
 // Function to get the current token from localStorage
 export const getToken = (): string => {
@@ -23,156 +35,69 @@ export const removeToken = (): void => {
 };
 
 // Create an axios instance with default config
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:3000",
+const api: AxiosInstance = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
   headers: {
-    "Content-Type": "application/json",
+    'Content-Type': 'application/json',
   },
   timeout: 10000, // 10 seconds
 });
 
 // Custom request config type
-type CustomAxiosRequestConfig = {
-  _retry?: boolean;
-  [key: string]: unknown;
-  headers?: Record<string, string>;
-  method?: string;
-  url?: string;
-  params?: unknown;
-  data?: unknown;
-};
+// type CustomAxiosRequestConfig = AxiosRequestConfig & {
+//   skipAuthRefresh?: boolean;
+// };
 
-// Add a request interceptor to add the auth token to requests
+// Request interceptor
 api.interceptors.request.use(
-  (config) => {
-    // Get token from localStorage directly to ensure we have the latest
-    const token = localStorage.getItem("token") || "";
-
-    // Ensure headers object exists
-    config.headers = config.headers || {};
-    config.headers["Content-Type"] = "application/json";
-
-    // Add auth header if token exists
-    if (token) {
-      config.headers["Authorization"] = `Bearer ${token}`;
-    } else {
-      console.warn("No authentication token found for request:", config.url);
+  (config: InternalAxiosRequestConfig) => {
+    const token = localStorage.getItem('token');
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
-
-    console.log(
-      `[API Request] ${config.method?.toUpperCase() || "GET"} ${config.url}`,
-      {
-        params: config.params,
-        headers: config.headers,
-      }
-    );
-
     return config;
   },
-  (error) => {
-    console.error("[API Request Error]", error);
+  (error: AxiosError) => {
     return Promise.reject(error);
   }
 );
 
-// Add a response interceptor for better error handling
+// Response interceptor
 api.interceptors.response.use(
-  (response: any) => {
-    console.log(
-      `[API Response] ${response.config?.method?.toUpperCase() || "GET"} ${
-        response.config?.url
-      }`,
-      {
-        status: response.status,
-        data: response.data,
-      }
-    );
+  (response: AxiosResponse) => {
     return response;
   },
-  (error: any) => {
-    if (error.response) {
-      // The request was made and the server responded with a status code
-      // that falls out of the range of 2xx
-      console.error("[API Response Error]", {
-        url: error.config?.url,
-        status: error.response.status,
-        data: error.response.data,
-        headers: error.config?.headers,
-      });
-
-      // Handle 401 Unauthorized
-      if (error.response.status === 401) {
-        console.warn("Authentication required, redirecting to login");
-        // You might want to redirect to login here
-        // window.location.href = '/login';
-      }
-    } else if (error.request) {
-      // The request was made but no response was received
-      console.error("[API Request Error] No response received:", error.request);
-    } else {
-      // Something happened in setting up the request that triggered an Error
-      console.error("[API Error]", error.message);
-    }
-
-    return Promise.reject(error);
-  }
-);
-
-// Add a response interceptor to handle 401 Unauthorized responses
-api.interceptors.response.use(
-  (response) => {
-    console.log("API Response:", response.config.url, response.status);
-    return response;
-  },
-  async (error) => {
-    console.error(
-      "API Error:",
-      error.config?.url,
-      error.response?.status,
-      error.message
-    );
+  async (error: AxiosError<ApiErrorResponse>) => {
     const originalRequest = error.config;
-
-    // If error is 401 and we haven't tried to refresh the token yet
-    if (error.response?.status === 401 && !originalRequest?._retry) {
-      originalRequest._retry = true;
-
+    
+    // Handle token refresh
+    if (error.response?.status === 401 && originalRequest) {
       try {
-        // Try to refresh the token
-        const refreshToken = localStorage.getItem("refreshToken");
-        if (refreshToken) {
-          const response = await axios.post("/api/auth/refresh-token", {
-            refreshToken,
-          });
-          const { token, user } = response.data;
-
-          // Update tokens and user data
-          setToken(token);
-          localStorage.setItem("token", token);
-          localStorage.setItem("user", JSON.stringify(user));
-
-          // Update the Authorization header
-          if (originalRequest.headers) {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-          }
-
-          // Retry the original request
-          return api(originalRequest);
+        const refreshToken = localStorage.getItem('refreshToken');
+        if (!refreshToken) {
+          throw new Error('No refresh token available');
         }
+
+        const response = await axios.post<ApiResponse<{ token: string }>>(
+          `${import.meta.env.VITE_API_URL}/auth/refresh`,
+          { refreshToken }
+        );
+
+        const { token } = response.data.data;
+        localStorage.setItem('token', token);
+
+        // Retry the original request with new token
+        if (originalRequest.headers) {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+        }
+        return axios(originalRequest);
       } catch (refreshError) {
-        // If refresh token fails, clear storage and redirect to login
-        localStorage.removeItem("token");
-        localStorage.removeItem("refreshToken");
-        localStorage.removeItem("user");
-        window.location.href = "/login";
+        // Clear tokens and redirect to login
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        window.location.href = '/login';
         return Promise.reject(refreshError);
       }
-    } else if (error.response?.status === 401) {
-      // If we already tried to refresh the token but still got 401, redirect to login
-      localStorage.removeItem("token");
-      localStorage.removeItem("refreshToken");
-      localStorage.removeItem("user");
-      window.location.href = "/login";
     }
 
     return Promise.reject(error);

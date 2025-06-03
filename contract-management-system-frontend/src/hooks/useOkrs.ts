@@ -2,16 +2,17 @@ import { useCallback, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch, RootState } from '../store/store';
 import { fetchOKRs, setFilters, resetFilters, deleteOKR } from '../store/slices/okrSlice';
-import type { Okr, OkrFilterParams } from '../types/okr';
+import { okrApi } from '../api/okrApi';
+import type { OkrFilterParams } from '../types/okr';
 
 export const useOkrs = () => {
   const dispatch = useDispatch<AppDispatch>();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  const okrs = useSelector((state: RootState) => state.okr.okrs);
-  const filters = useSelector((state: RootState) => state.okr.filters);
-  const total = useSelector((state: RootState) => state.okr.total);
+  const okrs = useSelector((state: RootState) => state.okrs.okrs);
+  const filters = useSelector((state: RootState) => state.okrs.filters);
+  const total = useSelector((state: RootState) => state.okrs.total);
   
   const loadOkrs = useCallback(async (params?: Partial<OkrFilterParams>) => {
     try {
@@ -67,7 +68,7 @@ export const useOkr = (id: string) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const okr = useSelector((state: RootState) => 
-    state.okr.okrs.find(o => o.id === id)
+    state.okrs.okrs.find(o => o.id === id)
   );
   
   const loadOkr = useCallback(async () => {
@@ -75,7 +76,8 @@ export const useOkr = (id: string) => {
       try {
         setLoading(true);
         setError(null);
-        await dispatch(fetchOKRs({ id })).unwrap();
+        const data = await okrApi.getOkrById(id);
+        dispatch({ type: 'okrs/setOkr', payload: data });
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load OKR');
         throw err;

@@ -1,16 +1,28 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link as RouterLink } from "react-router-dom";
 import { Button, Table, Space, message, Popconfirm, Card } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
-import type { Department } from "../../services/departmentService";
+import type { TableProps } from 'antd';
 import api from "../../services/api";
 import { useAuth } from "../../hooks";
 
+type DepartmentData = {
+  id: string;
+  name: string;
+  description?: string;
+  manager?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
+  employeeCount?: number;
+};
+
 const DepartmentList = () => {
-  const [departments, setDepartments] = useState<Department[]>([]);
+  const [departments, setDepartments] = useState<DepartmentData[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
-  const isAdmin = user?.roles?.includes("ADMIN");
+  const isAdmin = user?.role === 'admin';
 
   // Debugging to verify admin status
   useEffect(() => {
@@ -48,56 +60,61 @@ const DepartmentList = () => {
     }
   };
 
-  const columns = [
+  const columns: TableProps<DepartmentData>['columns'] = [
     {
       title: "Name",
       dataIndex: "name",
       key: "name",
-      render: (text: string, record: Department) => (
-        <Link
+      render: (text: string, record: DepartmentData) => (
+        <RouterLink
           to={`/departments/${record.id}`}
           className="text-blue-600 hover:text-blue-800 font-medium transition-colors"
         >
           {text}
-        </Link>
+        </RouterLink>
       ),
     },
     {
       title: "Description",
       dataIndex: "description",
       key: "description",
-      render: (text: string) => (
-        <span className="text-gray-700">{text || "-"}</span>
-      ),
+      render: (text: string) => text || "-",
       responsive: ["md"],
     },
     {
       title: "Manager",
+      dataIndex: ["manager", "firstName"],
       key: "manager",
-      render: (_: any, record: Department) =>
-        record.manager ? (
-          <span className="text-gray-700 font-medium">{`${record.manager.firstName} ${record.manager.lastName}`}</span>
-        ) : (
-          <span className="text-gray-600 bg-gray-100 px-2 py-1 rounded-md text-sm">
-            No Manager
-          </span>
-        ),
+      render: (_: string, record: DepartmentData) => {
+        if (!record.manager) return "-";
+        return `${record.manager.firstName} ${record.manager.lastName}`;
+      },
       responsive: ["lg"],
+    },
+    {
+      title: "Employees",
+      dataIndex: "employeeCount",
+      key: "employeeCount",
+      render: (count: number) => count || 0,
+      responsive: ["md"],
     },
     {
       title: "Actions",
       key: "actions",
       width: 120,
-      render: (_: any, record: Department) => (
+      render: (_, record: DepartmentData) => (
         <Space size="small">
-          <Link to={`/departments/${record.id}/edit`}>
+          <RouterLink
+            to={`/departments/${record.id}/edit`}
+            className="text-blue-600 hover:text-blue-800 font-medium transition-colors"
+          >
             <Button
               type="text"
               icon={<EditOutlined />}
               className="text-blue-600 hover:text-blue-800 transition-colors border-none shadow-none"
               title="Edit department"
             />
-          </Link>
+          </RouterLink>
 
           <Popconfirm
             title="Are you sure you want to delete this department?"
@@ -126,14 +143,14 @@ const DepartmentList = () => {
             Departments
           </h2>
           {isAdmin && (
-            <Link to="/departments/new">
+            <RouterLink to="/departments/new">
               <Button
                 className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 border-none rounded-lg shadow-md transition-all transform hover:scale-105 px-4 py-2 h-10 text-base font-semibold text-white"
                 icon={<PlusOutlined />}
               >
                 Add Department
               </Button>
-            </Link>
+            </RouterLink>
           )}
         </div>
 

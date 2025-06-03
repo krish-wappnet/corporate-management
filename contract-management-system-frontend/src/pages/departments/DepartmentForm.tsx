@@ -12,6 +12,12 @@ interface DepartmentFormProps {
   isEdit?: boolean;
 }
 
+interface DepartmentFormValues {
+  name: string;
+  description?: string;
+  managerId?: string;
+}
+
 const DepartmentForm = ({ isEdit = false }: DepartmentFormProps) => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
@@ -102,7 +108,7 @@ const DepartmentForm = ({ isEdit = false }: DepartmentFormProps) => {
     fetchData();
   }, [id, isEdit, form]);
 
-  const onFinish = async (values: any) => {
+  const onFinish = async (values: DepartmentFormValues) => {
     try {
       setSubmitting(true);
       

@@ -34,7 +34,7 @@ export interface CreateOkrDto {
   keyResults?: Array<Omit<CreateKeyResultDto, 'okrId'>>;
 }
 
-export interface UpdateOkrDto extends Partial<CreateOkrDto> {}
+export type UpdateOkrDto = Partial<CreateOkrDto>;
 
 export interface KeyResult {
   unit: string;
@@ -94,4 +94,15 @@ export interface OkrFilterParams {
   search?: string;
   page?: number;
   limit?: number;
+}
+
+export interface KeyResultFormValues {
+  title: string;
+  description?: string;
+  type: KeyResultType;
+  startValue: number;
+  currentValue: number;
+  targetValue: number;
+  weight: number;
+  okrId?: string;
 }

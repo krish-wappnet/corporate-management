@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { TypedUseSelectorHook } from 'react-redux';
 import type { ThunkDispatch, ThunkAction } from 'redux-thunk';
-import { Card, Row, Col, Typography, Progress, Spin } from 'antd';
+import { Card, Row, Col, Typography, Progress, Spin, message } from 'antd';
 import { 
   CheckCircleOutlined, 
   ExclamationCircleOutlined, 
@@ -107,7 +107,9 @@ const fetchCompletionRate = (): AppThunk<void> => {
       };
       dispatch(action);
     } catch (error) {
-      console.error('Error fetching completion rate:', error);
+      const err = error as Error;
+      console.error('Failed to fetch completion rate:', err);
+      message.error('Failed to load completion rate data');
     }
   };
 };
@@ -123,7 +125,9 @@ const fetchUserProgress = (payload: { userId: string }): AppThunk<void> => {
       };
       dispatch(action);
     } catch (error) {
-      console.error('Error fetching user progress:', error);
+      const err = error as Error;
+      console.error('Failed to fetch user progress:', err);
+      message.error('Failed to load user progress data');
     }
   };
 };
@@ -178,7 +182,7 @@ const OkrAnalyticsPage: React.FC = () => {
         style: { 
           color, 
           fontSize: '20px',
-          ...(icon.props as any)?.style 
+          ...(icon.props as { style?: React.CSSProperties })?.style 
         } 
       };
       styledIcon = React.cloneElement(icon, iconProps);

@@ -4,9 +4,10 @@ import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { 
   createKeyResult, 
   updateKeyResult, 
-  fetchKeyResultById,
+  selectKeyResultById,
   clearCurrentKeyResult
 } from '../../store/slices/okrSlice';
+import type { KeyResultType, KeyResultFormValues } from '../../types/okr';
 import { 
   Form, 
   Input, 
@@ -15,17 +16,14 @@ import {
   Typography, 
   Select, 
   InputNumber, 
-  Space, 
   message,
   Divider,
   Alert
 } from 'antd';
 import { 
   SaveOutlined, 
-  ArrowLeftOutlined,
-  InfoCircleOutlined
+  ArrowLeftOutlined
 } from '@ant-design/icons';
-import { KeyResultType } from '../../types/okr';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -41,17 +39,18 @@ const OkrKeyResultFormPage: React.FC = () => {
   const isEditing = !!id;
   const okrId = state?.okrId || '';
   
-  const { currentKeyResult, loading } = useAppSelector((state) => ({
+  const { currentKeyResult } = useAppSelector((state) => ({
     currentKeyResult: state.okrs.currentKeyResult,
-    loading: state.okrs.loading,
   }));
 
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
 
+  const keyResult = useAppSelector((state) => selectKeyResultById(id)(state));
+
   useEffect(() => {
-    if (isEditing && id) {
-      dispatch(fetchKeyResultById(id));
+    if (isEditing && id && keyResult) {
+      dispatch({ type: 'okrs/setCurrentKeyResult', payload: keyResult });
     } else {
       form.setFieldsValue({
         type: 'number',
@@ -65,7 +64,7 @@ const OkrKeyResultFormPage: React.FC = () => {
     return () => {
       dispatch(clearCurrentKeyResult());
     };
-  }, [dispatch, form, id, isEditing]);
+  }, [dispatch, form, id, isEditing, keyResult]);
 
   useEffect(() => {
     if (isEditing && currentKeyResult) {
@@ -81,7 +80,7 @@ const OkrKeyResultFormPage: React.FC = () => {
     }
   }, [currentKeyResult, form, isEditing]);
 
-  const handleSubmit = async (values: any) => {
+  const handleSubmit = async (values: KeyResultFormValues) => {
     try {
       setSubmitting(true);
       setFormError('');
@@ -95,14 +94,19 @@ const OkrKeyResultFormPage: React.FC = () => {
         await dispatch(updateKeyResult({ id, data: keyResultData })).unwrap();
         message.success('Key result updated successfully');
       } else {
-        await dispatch(createKeyResult(keyResultData)).unwrap();
+        const { okrId, ...data } = keyResultData;
+        await dispatch(createKeyResult({ 
+          okrId: okrId as string, 
+          data: { ...data, unit: data.type === 'currency' ? 'USD' : data.type === 'percentage' ? '%' : 'units' }
+        })).unwrap();
         message.success('Key result created successfully');
       }
       
-      navigate(-1); // Go back to previous page
-    } catch (error: any) {
-      console.error('Failed to save key result:', error);
-      setFormError(error.message || 'Failed to save key result');
+      navigate(-1);
+    } catch (error) {
+      const err = error as Error;
+      console.error('Failed to save key result:', err);
+      setFormError(err.message || 'Failed to save key result');
     } finally {
       setSubmitting(false);
     }

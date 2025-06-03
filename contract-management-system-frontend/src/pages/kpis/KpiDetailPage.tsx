@@ -66,9 +66,7 @@ const KpiDetailPage: React.FC = () => {
   const { user: currentUser } = useAppSelector((state) => state.auth);
   
   // Check if user has admin or manager role
-  const isAdminOrManager = currentUser?.roles?.some(
-    (role) => role === 'ADMIN' || role === 'MANAGER'
-  ) ?? false;
+  const isAdminOrManager = currentUser?.role === 'ADMIN' || currentUser?.role === 'MANAGER';
   // Removed unused state
   
   useEffect(() => {
@@ -91,7 +89,8 @@ const KpiDetailPage: React.FC = () => {
         message.success('KPI deleted successfully');
         navigate('/kpis');
       } catch (error) {
-        message.error('Failed to delete KPI');
+        const errorMessage = error instanceof Error ? error.message : 'Failed to delete KPI';
+        message.error(errorMessage);
       }
     }
   };
@@ -114,7 +113,8 @@ const KpiDetailPage: React.FC = () => {
       // Refresh KPI data
       dispatch(fetchKpiById(id));
     } catch (error) {
-      message.error('Failed to add update');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to add update';
+      message.error(errorMessage);
     }
   };
   

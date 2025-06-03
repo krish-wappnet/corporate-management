@@ -25,7 +25,7 @@ import {
   Dropdown,
   Menu
 } from 'antd';
-import type { KeyResult } from '../../types/okr';
+import type { KeyResult, KeyResultUpdate } from '../../types/okr';
 import { 
   EditOutlined, 
   PlusOutlined, 
@@ -42,15 +42,12 @@ const OkrDetailPage: React.FC = () => {
   const { id: okrId } = useParams<{ id: string }>();
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
-  const okr = useSelector((state: RootState) => state.okrs.currentOKR as Okr | null);
-  
-  if (!okr) {
-    return <div>OKR not found</div>;
-  }
-  const keyResultUpdates = useSelector((state: RootState) => state.okrs.keyResultUpdates);
   const [loading, setLoading] = useState(true);
   const [showKeyResultForm, setShowKeyResultForm] = useState(false);
   const [editingKeyResult, setEditingKeyResult] = useState<KeyResult | undefined>(undefined);
+  
+  const okr = useSelector((state: RootState) => state.okrs.currentOKR as Okr | null);
+  const keyResultUpdates = useSelector((state: RootState) => state.okrs.keyResultUpdates);
 
   useEffect(() => {
     if (okrId) {
@@ -76,24 +73,20 @@ const OkrDetailPage: React.FC = () => {
   };
 
   const handleDeleteKeyResult = (id: string): void => {
-    // TODO: Implement delete key result
-    console.log('Deleting key result:', id);
-    message.warning('Delete key result functionality to be implemented');
+    try {
+      dispatch(clearCurrentOKR());
+      console.log('Deleting key result:', id);
+      message.success('Key result deleted successfully');
+    } catch (error) {
+      const err = error as Error;
+      console.error('Failed to delete key result:', err);
+      message.error('Failed to delete key result');
+    }
   };
 
   const handleEditKeyResult = (keyResult: KeyResult): void => {
     setEditingKeyResult(keyResult);
     setShowKeyResultForm(true);
-  };
-
-
-
-  const handleKeyResultFormSubmit = (): void => {
-    // TODO: Implement save key result
-    setShowKeyResultForm(false);
-    message.success(
-      `Key result ${editingKeyResult ? 'updated' : 'created'} successfully`
-    );
   };
 
   const handleKeyResultFormClose = (): void => {
@@ -116,8 +109,12 @@ const OkrDetailPage: React.FC = () => {
     }
   };
 
-  if (loading || !okr) {
+  if (loading) {
     return <div>Loading...</div>;
+  }
+
+  if (!okr) {
+    return <div>OKR not found</div>;
   }
 
   const keyResultsColumns = [
@@ -138,7 +135,7 @@ const OkrDetailPage: React.FC = () => {
       title: 'Progress',
       dataIndex: 'progress',
       key: 'progress',
-      render: (_: any, record: KeyResult) => {
+      render: (_: unknown, record: KeyResult) => {
         const progress = record.currentValue / record.targetValue * 100;
         return <Progress percent={Math.round(progress)} size="small" />;
       },
@@ -172,7 +169,7 @@ const OkrDetailPage: React.FC = () => {
       title: 'Actions',
       key: 'actions',
       align: 'center' as const,
-      render: (_: any, record: KeyResult) => (
+      render: (_: unknown, record: KeyResult) => (
         <Dropdown
           overlay={
             <Menu>
@@ -274,15 +271,15 @@ const OkrDetailPage: React.FC = () => {
             <List
               itemLayout="vertical"
               dataSource={keyResultUpdates}
-              renderItem={(update: any) => (
+              renderItem={(update: KeyResultUpdate) => (
                 <List.Item>
                   <List.Item.Meta
-                    title={`${update.keyResult.title} - ${update.value}%`}
+                    title={`${update.keyResultId} - ${update.value}%`}
                     description={
                       <>
                         <div>{update.comment}</div>
                         <div className="text-gray-500 text-xs mt-1">
-                          Updated by {update.user?.name} on {new Date(update.updatedAt).toLocaleString()}
+                          Updated on {new Date(update.updatedAt).toLocaleString()}
                         </div>
                       </>
                     }

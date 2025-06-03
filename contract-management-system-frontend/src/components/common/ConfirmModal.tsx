@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, Button, Space } from 'antd';
+import { Modal, Button } from 'antd';
 import { ExclamationCircleOutlined } from '@ant-design/icons';
 
 interface ConfirmModalProps {
@@ -10,8 +10,8 @@ interface ConfirmModalProps {
   content: React.ReactNode;
   confirmText?: string;
   cancelText?: string;
-  confirmButtonProps?: any;
-  cancelButtonProps?: any;
+  confirmButtonProps?;
+  cancelButtonProps?;
   loading?: boolean;
   width?: number | string;
 }

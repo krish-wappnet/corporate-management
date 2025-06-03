@@ -4,22 +4,20 @@ import {
   EyeOutlined, 
   EditOutlined, 
   DeleteOutlined, 
-  LineChartOutlined,
-  MoreOutlined 
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useNavigate } from 'react-router-dom';
 import { formatDate } from '../../utils/date';
 import { getOkrStatusColor, getOkrTypeColor, calculateOkrProgress } from '../../utils/okr';
-import type { Okr } from '../../types/okr';
+import type { Okr, OkrType, OkrStatus } from '../../types/okr';
 import { useModal } from '../../hooks/useModal';
 import { ConfirmModal } from '../common/ConfirmModal';
 
 interface OkrTableProps {
   data: Okr[];
   loading: boolean;
-  pagination: any;
-  onTableChange: (pagination: any, filters: any, sorter: any) => void;
+  pagination;
+  onTableChange: (pagination, filters, sorter) => void;
   onDelete: (id: string) => Promise<boolean>;
 }
 
@@ -31,7 +29,7 @@ export const OkrTable: React.FC<OkrTableProps> = ({
   onDelete,
 }) => {
   const navigate = useNavigate();
-  const deleteModal = useModal();
+  const deleteModal = useModal<Okr>();
   
   const handleDelete = async (id: string) => {
     const success = await onDelete(id);
@@ -67,7 +65,7 @@ export const OkrTable: React.FC<OkrTableProps> = ({
         { text: 'Company', value: 'company' },
       ],
       render: (type: string) => (
-        <Tag color={getOkrTypeColor(type)} className="capitalize">
+        <Tag color={getOkrTypeColor(type as OkrType)} className="capitalize">
           {type}
         </Tag>
       ),
@@ -83,7 +81,7 @@ export const OkrTable: React.FC<OkrTableProps> = ({
         { text: 'Cancelled', value: 'cancelled' },
       ],
       render: (status: string) => (
-        <Tag color={getOkrStatusColor(status)} className="capitalize">
+        <Tag color={getOkrStatusColor(status as OkrStatus)} className="capitalize">
           {status}
         </Tag>
       ),
@@ -176,7 +174,7 @@ export const OkrTable: React.FC<OkrTableProps> = ({
       <ConfirmModal
         isOpen={deleteModal.isOpen}
         onClose={deleteModal.close}
-        onConfirm={() => handleDelete(deleteModal.data?.id)}
+        onConfirm={() => handleDelete(deleteModal.data!.id)}
         title="Delete OKR"
         content={`Are you sure you want to delete "${deleteModal.data?.title}"? This action cannot be undone.`}
         confirmText="Delete"

@@ -1,9 +1,12 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import axios from 'axios';
 import type { RootState } from '../store';
+import type { PayloadAction } from '@reduxjs/toolkit';
+import type { AxiosError } from 'axios';
+import api from '../../services/api';
 
 // Create axios instance with base URL
-const api = axios.create({
+const apiInstance = axios.create({
   baseURL: '/api',
   headers: {
     'Content-Type': 'application/json',
@@ -11,7 +14,7 @@ const api = axios.create({
 });
 
 // Add request interceptor to include auth token
-api.interceptors.request.use(
+apiInstance.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
@@ -47,7 +50,7 @@ export const fetchFeedbackReceived = createAsyncThunk<
   'feedback/fetchReceived',
   async ({ page = 1, limit = 10, userId }, { rejectWithValue }) => {
     try {
-      const response = await api.get<FeedbackResponse>('/feedback/received', {
+      const response = await apiInstance.get<FeedbackResponse>('/feedback/received', {
         params: {
           page,
           limit,
@@ -55,11 +58,33 @@ export const fetchFeedbackReceived = createAsyncThunk<
         },
       });
       return response.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch feedback');
+    } catch (error) {
+      const apiError = error as AxiosError<ApiErrorResponse>;
+      return rejectWithValue(
+        apiError.response?.data?.message || 'Failed to fetch feedback'
+      );
     }
   }
 );
+
+interface ApiErrorResponse {
+  message: string;
+}
+
+interface Feedback {
+  id: string;
+  userId: string;
+  content: string;
+  type: 'suggestion' | 'bug' | 'feature';
+  status: 'pending' | 'in-progress' | 'resolved';
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface CreateFeedbackDto {
+  content: string;
+  type: Feedback['type'];
+}
 
 interface FeedbackState {
   received: Array<{
@@ -84,6 +109,8 @@ interface FeedbackState {
     pageSize: number;
     total: number;
   };
+  feedbacks: Feedback[];
+  currentFeedback: Feedback | null;
 }
 
 const initialState: FeedbackState = {
@@ -95,7 +122,24 @@ const initialState: FeedbackState = {
     pageSize: 10,
     total: 0,
   },
+  feedbacks: [],
+  currentFeedback: null,
 };
+
+export const createFeedback = createAsyncThunk(
+  'feedback/createFeedback',
+  async (data: CreateFeedbackDto, { rejectWithValue }) => {
+    try {
+      const response = await api.post('/feedback', data);
+      return response.data as Feedback;
+    } catch (error) {
+      const apiError = error as AxiosError<ApiErrorResponse>;
+      return rejectWithValue(
+        apiError.response?.data?.message || 'Failed to create feedback'
+      );
+    }
+  }
+);
 
 const feedbackSlice = createSlice({
   name: 'feedback',
@@ -105,6 +149,9 @@ const feedbackSlice = createSlice({
       state.error = null;
     },
     resetFeedbackState: () => initialState,
+    clearError: (state) => {
+      state.error = null;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -123,15 +170,29 @@ const feedbackSlice = createSlice({
       .addCase(fetchFeedbackReceived.rejected, (state, action) => {
         state.loading = false;
         state.error = (action.payload as string) || 'Failed to fetch feedback';
+      })
+      .addCase(createFeedback.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(createFeedback.fulfilled, (state, action: PayloadAction<Feedback>) => {
+        state.loading = false;
+        state.feedbacks.push(action.payload);
+      })
+      .addCase(createFeedback.rejected, (state, action) => {
+        state.loading = false;
+        state.error = typeof action.payload === 'string' ? action.payload : 'Failed to create feedback';
       });
   },
 });
 
-export const { clearFeedbackError, resetFeedbackState } = feedbackSlice.actions;
+export const { clearFeedbackError, resetFeedbackState, clearError } = feedbackSlice.actions;
 
 export const selectFeedbackReceived = (state: RootState) => state.feedback.received;
 export const selectFeedbackLoading = (state: RootState) => state.feedback.loading;
 export const selectFeedbackError = (state: RootState) => state.feedback.error;
 export const selectFeedbackPagination = (state: RootState) => state.feedback.pagination;
+export const selectFeedbacks = (state: RootState) => state.feedback.feedbacks;
+export const selectCurrentFeedback = (state: RootState) => state.feedback.currentFeedback;
 
 export default feedbackSlice.reducer;

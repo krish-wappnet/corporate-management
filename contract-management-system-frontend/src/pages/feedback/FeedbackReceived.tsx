@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
 import { Card, Table, Tag, Avatar, Rate, Typography } from 'antd';
-import { UserOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
 const { Text } = Typography;
@@ -66,15 +65,13 @@ const FeedbackReceived: React.FC = () => {
   );
 
   // Ensure data is in correct format
-  const isValidData = tableData.every(item => 
-    item.key && item.id && item.fromUser && item.rating && item.comment
-  );
+  
   const columns = [
     {
       title: 'From',
       dataIndex: 'fromUser',
       key: 'from',
-      render: (_: any, record: FeedbackItem) => {
+      render: (_: unknown, record: FeedbackItem) => {
         const initials = `${record.fromUser.firstName[0]}${record.fromUser.lastName[0]}`.toUpperCase();
         const colors = ['#3b82f6', '#10b981', '#8b5cf6', '#ec4899', '#f59e0b'];
         const colorIndex = (record.fromUser.firstName.length + record.fromUser.lastName.length) % colors.length;

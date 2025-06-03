@@ -1,17 +1,27 @@
-import type { RootState } from '../store';
+import { createSelector } from '@reduxjs/toolkit';
+import type { RootState } from '../rootReducer';
+import type { Okr, KeyResult, KeyResultUpdate } from '../../types/okr';
+import { selectOKRs, selectCurrentOKR } from '../slices/okrSlice';
 
-interface KeyResult {
-  id: string;
-  [key: string]: any;
-}
+export const selectFilteredOKRs = createSelector(
+  [selectOKRs, (state: RootState) => state.okrs.filters],
+  (okrs: Okr[]) => {
+    // Apply filters here
+    return okrs;
+  }
+);
 
-interface KeyResultUpdate {
-  keyResultId: string;
-  [key: string]: any;
-}
+export const selectOKRWithKeyResults = createSelector(
+  [selectCurrentOKR],
+  (okr: Okr | null) => {
+    if (!okr) return null;
+    // Since keyResults is part of the Okr type, we can safely access it
+    return okr;
+  }
+);
 
 export const selectKeyResultById = (state: RootState, id: string): KeyResult | undefined => {
-  return state.okrs.keyResults?.find((kr: KeyResult) => kr.id === id);
+  return state.okrs.currentOKR?.keyResults?.find((kr: KeyResult) => kr.id === id);
 };
 
 export const selectKeyResultUpdates = (state: RootState, keyResultId: string): KeyResultUpdate[] => {

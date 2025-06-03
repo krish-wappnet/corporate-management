@@ -16,6 +16,15 @@ interface Department {
   name: string;
 }
 
+interface ApiError {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+  message?: string;
+}
+
 const AddEmployeePage: React.FC = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
@@ -65,7 +74,7 @@ const AddEmployeePage: React.FC = () => {
         lastName: string;
         email: string;
         password: string;
-        roles: string[];
+        role: string;
         position: string;
         department?: string;
       } = {
@@ -73,7 +82,7 @@ const AddEmployeePage: React.FC = () => {
         lastName: values.lastName,
         email: values.email,
         password: values.password,
-        roles: [values.role],
+        role: values.role,
         position: values.position,
       };
 
@@ -86,11 +95,12 @@ const AddEmployeePage: React.FC = () => {
 
       toast.success("Employee added successfully");
       navigate("/employees");
-    } catch (error: any) {
-      if (error.response && error.response.data && error.response.data.message) {
-        toast.error(error.response.data.message);
-      } else if (error.message) {
-        toast.error(error.message);
+    } catch (error: unknown) {
+      const apiError = error as ApiError;
+      if (apiError.response?.data?.message) {
+        toast.error(apiError.response.data.message);
+      } else if (apiError.message) {
+        toast.error(apiError.message);
       } else {
         toast.error("Failed to add employee");
       }
