@@ -13,24 +13,22 @@ interface AuthState {
     email: string;
     firstName: string;
     lastName: string;
-    role: string;
+    roles: string[];
+    department?: string;
   } | null;
   token: string | null;
-  refreshToken: string | null;
   loading: boolean;
   error: string | null;
 }
 
-// Update User type to include role
+// Update User type to match API response
 export interface User {
   id: string;
+  email: string;
   firstName: string;
   lastName: string;
-  email: string;
-  position: string;
-  department: string;
-  role: string;
   roles: string[];
+  department?: string;
 }
 
 const isTokenExpired = (token: string | null): boolean => {
@@ -57,7 +55,6 @@ if (token) {
 const initialState: AuthState = {
   user: userFromStorage ? JSON.parse(userFromStorage) : null,
   token: token,
-  refreshToken: localStorage.getItem('refreshToken'),
   loading: false,
   error: null,
 };
@@ -67,12 +64,19 @@ export const login = createAsyncThunk(
   async (credentials: { email: string; password: string }, { rejectWithValue }) => {
     try {
       const response = await api.post("/auth/login", credentials);
-      const { token, refreshToken, user } = response.data;
+      const { access_token, user } = response.data;
       
-      localStorage.setItem("token", token);
-      localStorage.setItem("refreshToken", refreshToken);
+      // Transform the user data to match our expected format
+      const transformedUser = {
+        ...user,
+        role: user.roles?.[0]?.toUpperCase() || 'EMPLOYEE', // Take first role and convert to uppercase
+      };
       
-      return { token, refreshToken, user };
+      localStorage.setItem("token", access_token);
+      localStorage.setItem("user", JSON.stringify(transformedUser));
+      setToken(access_token);
+      
+      return { token: access_token, user: transformedUser };
     } catch (error) {
       const apiError = error as AxiosError<ApiErrorResponse>;
       return rejectWithValue(
@@ -139,7 +143,7 @@ export const register = createAsyncThunk(
 export const loadUser = createAsyncThunk<User, void, { state: RootState }>(
   "auth/loadUser",
   async (_, { getState, rejectWithValue, dispatch }) => {
-    const { token } = getState().auth;
+    const token = getState().auth?.token;
 
     if (!token || isTokenExpired(token)) {
       dispatch(logout());
@@ -170,16 +174,13 @@ export const logout = createAsyncThunk(
   "auth/logout",
   async (_, { rejectWithValue }) => {
     try {
-      await api.post("/auth/logout");
+      // Clear local storage and state without API call
       localStorage.removeItem("token");
-      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("user");
       setToken("");
       return null;
     } catch (error) {
-      const apiError = error as AxiosError<ApiErrorResponse>;
-      return rejectWithValue(
-        apiError.response?.data?.message || "Failed to logout"
-      );
+      return rejectWithValue("Failed to logout");
     }
   }
 );
@@ -202,7 +203,6 @@ const authSlice = createSlice({
         state.loading = false;
         state.user = action.payload.user;
         state.token = action.payload.token;
-        state.refreshToken = action.payload.refreshToken;
       })
       .addCase(login.rejected, (state, action) => {
         state.loading = false;
@@ -211,7 +211,6 @@ const authSlice = createSlice({
       .addCase(logout.fulfilled, (state) => {
         state.user = null;
         state.token = null;
-        state.refreshToken = null;
       });
 
     builder.addCase(loadUser.pending, (state) => {
@@ -262,9 +261,9 @@ const authSlice = createSlice({
 
 export const { clearError } = authSlice.actions;
 
-export const selectAuthUser = (state: RootState) => state.auth.user;
-export const selectAuthToken = (state: RootState) => state.auth.token;
-export const selectAuthLoading = (state: RootState) => state.auth.loading;
-export const selectAuthError = (state: RootState) => state.auth.error;
+export const selectAuthUser = (state: RootState) => state.auth?.user ?? null;
+export const selectAuthToken = (state: RootState) => state.auth?.token ?? null;
+export const selectAuthLoading = (state: RootState) => state.auth?.loading ?? false;
+export const selectAuthError = (state: RootState) => state.auth?.error ?? null;
 
 export default authSlice.reducer;

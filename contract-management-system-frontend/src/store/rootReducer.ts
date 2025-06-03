@@ -3,7 +3,7 @@ import { persistReducer } from "redux-persist";
 import storage from "redux-persist/lib/storage";
 
 import authReducer from "./slices/authSlice";
-import userReducer from "./slices/userSlice";
+import userReducer, { resetState as resetUserState } from "./slices/userSlice";
 import okrReducer from "./slices/okrSlice";
 import kpiReducer from "./slices/kpiSlice";
 import feedbackReducer from "./slices/feedbackSlice";
@@ -29,8 +29,13 @@ export const rootReducer = (
   action: import("redux").AnyAction
 ) => {
   if (action.type === "auth/logout") {
-    // Clear the entire state except for the router state
-    return appReducer(undefined, action);
+    // Reset users state using the resetState action
+    const newState = appReducer(state, resetUserState());
+    // Clear other state as needed
+    return {
+      ...newState,
+      auth: undefined,
+    };
   }
   return appReducer(state, action);
 };

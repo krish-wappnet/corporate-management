@@ -137,7 +137,7 @@ export class OkrsService {
     // Get total count and paginated results
     const [items, total] = await this.okrsRepository.findAndCount({
       where,
-      relations: ['user', 'keyResults', 'keyResults.progressUpdates', 'parentOkr'],
+      relations: ['user', 'keyResults', 'keyResults.updates', 'parentOkr'],
       order: { createdAt: 'DESC' },
       skip,
       take: limit,

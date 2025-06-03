@@ -6,6 +6,7 @@ import {
   selectUsers,
   selectUsersLoading,
   selectTotalUsers,
+  type User,
 } from "../../store/slices/userSlice";
 import { Link } from "react-router-dom";
 import {
@@ -28,28 +29,12 @@ import {
   DeleteOutlined,
 } from "@ant-design/icons";
 import api from "../../services/api";
+import type { ColumnsType } from 'antd/es/table';
 
 const { Option } = Select;
 
-interface ApiUser {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  roles: string[];
-  role?: string;
-  position: string;
-  department: string;
-  managerId: string | null;
-  manager?: {
-    name: string;
-  };
-  createdAt: string;
-  updatedAt: string;
-  password?: string;
-}
 
-type User = ApiUser;
+
 
 const EmployeesPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -103,7 +88,7 @@ const EmployeesPage: React.FC = () => {
       email: user.email,
       position: user.position,
       department: user.department,
-      role: user.role || user.roles?.[0] || "employee",
+      role: user.roles?.[0] || "employee",
     });
     setEditModalVisible(true);
   };
@@ -152,7 +137,7 @@ const EmployeesPage: React.FC = () => {
     }
   };
 
-  const columns = [
+  const columns: ColumnsType<User> = [
     {
       title: "Employee",
       key: "name",
@@ -203,11 +188,7 @@ const EmployeesPage: React.FC = () => {
       title: "Role",
       key: "role",
       render: (_: unknown, record: User) => {
-        const role = (
-          record.role ||
-          record.roles?.[0] ||
-          "employee"
-        ).toLowerCase();
+        const role = (record.roles?.[0] || "employee").toLowerCase();
         const roleColors: Record<string, string> = {
           admin: "red",
           manager: "blue",
@@ -265,7 +246,7 @@ const EmployeesPage: React.FC = () => {
     },
   ];
 
-  const tableData: User[] = users || [];
+  const tableData: User[] = Array.isArray(users) ? users : [];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 font-['Inter',-apple-system,BlinkMacSystemFont,'Segoe_UI',Roboto,sans-serif] p-4 sm:p-6 lg:p-8">
@@ -275,7 +256,7 @@ const EmployeesPage: React.FC = () => {
             <h2 className="text-3xl font-extrabold text-blue-900 mb-4 sm:mb-0 tracking-tight">
               Employees
             </h2>
-            <Link to="/employees/add">
+            <Link to="/employees/new">
               <Button
                 type="primary"
                 className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 border-none rounded-lg shadow-md transition-all transform hover:scale-105 h-10 text-base font-semibold"
@@ -287,7 +268,7 @@ const EmployeesPage: React.FC = () => {
           <div className="overflow-x-auto">
             <Table
               columns={columns}
-              dataSource={tableData}
+              dataSource={Array.isArray(tableData) ? tableData : []}
               rowKey="id"
               pagination={{
                 current: pagination.current,

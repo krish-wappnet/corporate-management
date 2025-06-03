@@ -22,7 +22,7 @@ const DepartmentList = () => {
   const [departments, setDepartments] = useState<DepartmentData[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = user?.roles?.includes('admin');
 
   // Debugging to verify admin status
   useEffect(() => {

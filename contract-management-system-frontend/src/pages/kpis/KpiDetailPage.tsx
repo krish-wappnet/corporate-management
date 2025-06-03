@@ -41,6 +41,7 @@ import {
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
+import { selectAuthUser } from '../../store/slices/authSlice';
 
 // Extend dayjs with relativeTime plugin
 dayjs.extend(relativeTime);
@@ -63,10 +64,10 @@ const KpiDetailPage: React.FC = () => {
     loading: state.kpis.loading,
   }));
   
-  const { user: currentUser } = useAppSelector((state) => state.auth);
+  const currentUser = useAppSelector(selectAuthUser);
   
   // Check if user has admin or manager role
-  const isAdminOrManager = currentUser?.role === 'ADMIN' || currentUser?.role === 'MANAGER';
+  const isAdminOrManager = currentUser?.roles?.includes('admin') || currentUser?.roles?.includes('manager');
   // Removed unused state
   
   useEffect(() => {

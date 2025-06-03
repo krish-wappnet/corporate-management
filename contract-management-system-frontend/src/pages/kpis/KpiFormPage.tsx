@@ -2,6 +2,7 @@ import React, { useState, useEffect} from 'react';
 import dayjs from 'dayjs';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/store';
+import { selectAuthUser } from '../../store/slices/authSlice';
 import { 
   createKpi, 
   updateKpi, 
@@ -55,7 +56,7 @@ const KpiFormPage: React.FC = () => {
   const dispatch = useAppDispatch();
   
   const { loading, categories = [] } = useAppSelector((state) => state.kpis);
-  const { user: currentUser } = useAppSelector((state) => state.auth);
+  const currentUser = useAppSelector(selectAuthUser);
   const { users: usersResponse, loading: usersLoading } = useAppSelector((state) => state.users);
   const users = usersResponse || [];
   
@@ -102,7 +103,7 @@ const KpiFormPage: React.FC = () => {
   };
   
   // Check if user has admin or manager role
-  const isAdminOrManager = currentUser?.role === 'ADMIN' || currentUser?.role === 'MANAGER';
+  const isAdminOrManager = currentUser?.roles?.includes('admin') || currentUser?.roles?.includes('manager');
   
   // Removed unused state
   const [kpiType, setKpiType] = useState<KpiType>(KpiType.QUANTITATIVE);
@@ -236,7 +237,7 @@ const KpiFormPage: React.FC = () => {
                 >
                   {users.map((user) => (
                     <Select.Option key={user.id} value={user.id}>
-                      {`${user.firstName} ${user.lastName}`} ({user.role || 'No Role'})
+                      {`${user.firstName} ${user.lastName}`} ({user.roles || 'No Role'})
                     </Select.Option>
                   ))}
                 </Select>

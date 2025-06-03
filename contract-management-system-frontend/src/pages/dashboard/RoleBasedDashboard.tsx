@@ -19,11 +19,11 @@ export const RoleBasedDashboard: React.FC = () => {
   }
 
   // Check user role and render appropriate dashboard
-  if (user.roles.includes('admin')) {
+  if (user.roles?.includes('admin')) {
     return <AdminDashboard />;
   }
 
-  if (user.roles.includes('manager')) {
+  if (user.roles?.includes('manager')) {
     return <ManagerDashboard />;
   }
 

@@ -64,7 +64,9 @@ const KpiAnalyticsPage: React.FC = () => {
     loading: state.kpis.loading,
   }));
   
-  const { users = [] } = useAppSelector((state) => state.users) as { users: UserData[] };
+  const users = useAppSelector((state) => 
+    Array.isArray(state.users.users) ? state.users.users : []
+  ) as UserData[];
   
   const [completionRate, setCompletionRate] = useState<{rate: number; completed: number; total: number} | null>(null);
   const [progressByCategory, setProgressByCategory] = useState<Array<{category: string; avgProgress: number; totalKpis: number}>>([]);
@@ -238,8 +240,9 @@ const KpiAnalyticsPage: React.FC = () => {
               style={{ width: 200 }}
               allowClear
               onChange={(value: string | undefined) => setSelectedUserId(value)}
+              loading={loading}
             >
-              {users.map((user) => (
+              {users?.map((user) => (
                 <Option key={user.id} value={user.id}>
                   {user.firstName} {user.lastName}
                 </Option>

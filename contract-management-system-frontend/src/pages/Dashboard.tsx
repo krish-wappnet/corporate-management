@@ -1,17 +1,15 @@
 import React, { useEffect, useCallback, useState, useRef } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/store';
-import { logout } from '../store/slices/authSlice';
+import { logout, selectAuthUser, selectAuthLoading, selectAuthError } from '../store/slices/authSlice';
 import { useNavigate } from 'react-router-dom';
 import { Modal } from '../components/common/Modal';
 import { RoleBasedDashboard } from './dashboard/RoleBasedDashboard';
-import type { User } from '../types';
+
 
 const Dashboard: React.FC = () => {
-  const { user, loading, error } = useAppSelector((state) => ({
-    user: state.auth.user as User | null,
-    loading: state.auth.loading,
-    error: state.auth.error
-  }));
+  const user = useAppSelector(selectAuthUser);
+  const loading = useAppSelector(selectAuthLoading);
+  const error = useAppSelector(selectAuthError);
   
   const [showTimeoutModal, setShowTimeoutModal] = useState(false);
   const [timeLeft, setTimeLeft] = useState(60); // 1 minute countdown

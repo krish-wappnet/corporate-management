@@ -8,13 +8,18 @@ interface ApiErrorResponse {
   message: string;
 }
 
-interface User {
+export interface User {
   id: string;
   email: string;
   firstName: string;
   lastName: string;
-  role: string;
-  departmentId?: string;
+  roles: string[];
+  position: string;
+  department: string | null;
+  managerId: string | null;
+  manager?: {
+    name: string;
+  };
   createdAt: string;
   updatedAt: string;
 }
@@ -53,7 +58,7 @@ interface UserState {
   };
 }
 
-const initialState: UserState = {
+export const initialState: UserState = {
   users: [],
   currentUser: null,
   loading: false,
@@ -153,6 +158,7 @@ const userSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
+    resetState: () => initialState,
   },
   extraReducers: (builder) => {
     builder
@@ -164,8 +170,18 @@ const userSlice = createSlice({
         state.loading = false;
         state.users = action.payload.items;
         state.total = action.payload.total;
-        state.filters.page = action.payload.page;
-        state.filters.limit = action.payload.limit;
+        if (!state.filters) {
+          state.filters = {
+            page: 1,
+            limit: 10
+          };
+        }
+        if (typeof action.payload.page === 'number') {
+          state.filters.page = action.payload.page;
+        }
+        if (typeof action.payload.limit === 'number') {
+          state.filters.limit = action.payload.limit;
+        }
       })
       .addCase(fetchUsers.rejected, (state, action) => {
         state.loading = false;
@@ -254,13 +270,13 @@ const userSlice = createSlice({
   },
 });
 
-export const { clearCurrentUser, clearError } = userSlice.actions;
+export const { clearCurrentUser, clearError, resetState } = userSlice.actions;
 
-export const selectUsers = (state: RootState) => state.users.users;
+export const selectUsers = (state: RootState) => state.users?.users ?? [];
 export const selectUsersResponse = (state: RootState) => state.users.users;
 export const selectCurrentUser = (state: RootState) => state.users.currentUser;
-export const selectUsersLoading = (state: RootState) => state.users.loading;
+export const selectUsersLoading = (state: RootState) => state.users?.loading ?? false;
 export const selectUsersError = (state: RootState) => state.users.error;
-export const selectTotalUsers = (state: RootState) => state.users.total;
+export const selectTotalUsers = (state: RootState) => state.users?.total ?? 0;
 
 export default userSlice.reducer;
